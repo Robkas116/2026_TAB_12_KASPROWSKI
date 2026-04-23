@@ -5,10 +5,6 @@ from sqlalchemy.exc import IntegrityError
 from crud import make_crud
 from database.database import get_db
 from models.make_model import MakeCreate, MakePublic, MakeUpdate, MakesPublic
-# Adjust imports based on your actual project structure
-# from database.database import get_db
-# from schemas.make import MakeCreate, MakeUpdate, MakePublic
-# from crud import make as crud_make
 
 router = APIRouter(
     prefix="/make",
@@ -35,7 +31,6 @@ def get_makes(
     """
     Retrieve all Makes with pagination.
     """
-    # Funkcja CRUD zwraca już gotowy obiekt Pydantic, więc po prostu go przekazujemy
     return make_crud.get_all_makes(session=db, skip=skip, limit=limit)
 
 
@@ -95,7 +90,7 @@ def delete_make(
         make_crud.delete_make(session=db, db_make=db_make)
         return {"message": "Make has been deleted successfully"}
     except IntegrityError:
-        # Rollback is necessary after an IntegrityError to keep the session usable
+        # Rollback when FK problem
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

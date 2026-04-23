@@ -6,11 +6,6 @@ from crud import vehmodel_crud
 from database.database import get_db
 from models.vehmodel_model import VehModelCreate, VehModelPublic, VehModelUpdate, VehModelsPublic
 
-# Adjust the import paths according to your actual project structure
-# from database.database import get_db
-# from schemas.vehmmodel_schema import ModelCreate, ModelUpdate, ModelPublic
-# from schemas.common import Message
-# from crud import vehmmodel as crud_model
 
 router = APIRouter(
     prefix="/model",
@@ -115,7 +110,7 @@ def delete_model(
         vehmodel_crud.delete_vehmodel(session=db, db_model=db_model)
         return {"message": "Vehicle Model has been deleted successfully."}
     except IntegrityError:
-        # Looking ahead at your ERD diagram: Model is connected to Vehicle
+        # Rollback is necessary after an IntegrityError to keep the session usable
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
