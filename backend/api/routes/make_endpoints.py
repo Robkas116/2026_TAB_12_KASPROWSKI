@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from crud import make_crud
 from database.database import get_db
-from models.make_model import MakeCreate, MakePublic, MakeUpdate
+from models.make_model import MakeCreate, MakePublic, MakeUpdate, MakesPublic
 # Adjust imports based on your actual project structure
 # from database.database import get_db
 # from schemas.make import MakeCreate, MakeUpdate, MakePublic
@@ -24,6 +24,19 @@ def create_make(
     Create a new Make in the database.
     """
     return make_crud.create_make(session=db, make_in=make_in)
+
+
+@router.get("/", response_model=MakesPublic)
+def get_makes(
+    db: Session = Depends(get_db),
+    skip: int = Query(0, description="Number of items to skip"),
+    limit: int = Query(100, le=1000, description="Max number of items to return")
+):
+    """
+    Retrieve all Makes with pagination.
+    """
+    # Funkcja CRUD zwraca już gotowy obiekt Pydantic, więc po prostu go przekazujemy
+    return make_crud.get_all_makes(session=db, skip=skip, limit=limit)
 
 
 @router.get("/{make_id}", response_model=MakePublic)

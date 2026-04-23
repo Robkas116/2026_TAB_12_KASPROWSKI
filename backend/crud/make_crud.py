@@ -1,13 +1,10 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 
-from models.make_model import Make, MakeCreate, MakeUpdate
+from models.make_model import Make, MakeCreate, MakeUpdate, MakesPublic, MakePublic
 
-# Zakładam, że importujesz odpowiednie modele i schematy z Twojego projektu
-# from models.vehicle import Make
-# from schemas.make import MakeCreate, MakeUpdate
 
-def create_make(*, session: Session, make_in: MakeCreate) -> Make:
+def create_make(*, session: Session, make_in: MakeCreate) -> MakePublic:
     """
     Creates a new make in the database using the provided data.
         The make_in parameter is expected to be a Pydantic model (MakeCreate) that contains the data for the new make.
@@ -22,14 +19,33 @@ def create_make(*, session: Session, make_in: MakeCreate) -> Make:
     session.refresh(db_obj)
     return db_obj
 
-def get_make_by_id(*, session: Session, make_id: int) -> Make | None:
+def get_all_makes(*, session: Session, skip: int = 0, limit: int = 100) -> MakesPublic:
+    """Retrieves a list of vehicle makes from the database.
+
+    Args:
+        skip (int, optional): Number of records to skip (offset). Defaults to 0.
+        limit (int, optional): Maximum number of records to return. Defaults to 100.
+
+    Returns:
+        MakesPublic: A Pydantic schema containing the list of makes and the total count.
+    """
+    # gets number of all Makes in db
+    total_count = session.scalar(select(func.count()).select_from(Make)) or 0
+
+    # selects the partition of Makes
+    statement = select(Make).offset(skip).limit(limit)
+    makes = session.scalars(statement).all()
+    return MakesPublic(data=makes, count=total_count)
+
+
+def get_make_by_id(*, session: Session, make_id: int) -> MakePublic | None:
     """
     Finds a make by its ID in the database. Returns None if not found.
     """
     # getting by primary key
     return session.get(Make, make_id)
 
-def update_make(*, session: Session, db_make: Make, make_in: MakeUpdate) -> Make:
+def update_make(*, session: Session, db_make: Make, make_in: MakeUpdate) -> MakePublic:
     """
     Updating a make in the database.
     """

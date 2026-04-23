@@ -1,7 +1,8 @@
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 # Adjust the import paths according to your actual project structure
-from models.vehmodel_model import VehModel, VehModelCreate, VehModelUpdate
+from models.vehmodel_model import VehModel, VehModelCreate, VehModelUpdate, VehModelsPublic
 
 
 def create_vehmodel(*, session: Session, model_in: VehModelCreate) -> VehModel:
@@ -22,6 +23,27 @@ def create_vehmodel(*, session: Session, model_in: VehModelCreate) -> VehModel:
     session.refresh(db_obj)
     
     return db_obj
+
+
+def get_all_models(*, session: Session, skip: int = 0, limit: int = 100) -> VehModelsPublic:
+    """Retrieves a list of vehicle models from the database.
+
+    Args:
+        skip (int, optional): Number of records to skip (offset). Defaults to 0.
+        limit (int, optional): Maximum number of records to return. Defaults to 100.
+
+    Returns:
+        VehModelsPublic: A Pydantic schema containing the list of models and the total count.
+    """
+    # 1. Count the total number of models in the database
+    total_count = session.scalar(select(func.count()).select_from(VehModel)) or 0
+
+    # 2. Fetch the paginated rows
+    statement = select(VehModel).offset(skip).limit(limit)
+    models = session.scalars(statement).all()
+
+    # 3. Return the populated Pydantic schema
+    return VehModelsPublic(data=models, count=total_count)
 
 
 def get_vehmodel_by_id(*, session: Session, model_id: int) -> VehModel | None:

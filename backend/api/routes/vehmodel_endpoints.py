@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from crud import vehmodel_crud
 from database.database import get_db
-from models.vehmodel_model import VehModelCreate, VehModelPublic, VehModelUpdate
+from models.vehmodel_model import VehModelCreate, VehModelPublic, VehModelUpdate, VehModelsPublic
 
 # Adjust the import paths according to your actual project structure
 # from database.database import get_db
@@ -35,6 +35,19 @@ def create_model(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="The provided make_id does not exist in the database."
         )
+
+
+@router.get("/", response_model=VehModelsPublic)
+def get_models(
+    db: Session = Depends(get_db),
+    skip: int = Query(0, description="Number of items to skip (offset)"),
+    limit: int = Query(100, le=1000, description="Max number of items to return")
+):
+    """
+    Retrieve all Vehicle Models with pagination.
+    Returns a list of models and the total count of models in the database.
+    """
+    return vehmodel_crud.get_all_models(session=db, skip=skip, limit=limit)
 
 
 @router.get("/{model_id}", response_model=VehModelPublic)
