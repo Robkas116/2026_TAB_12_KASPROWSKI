@@ -9,7 +9,7 @@ from database.database import Base
 class Worker(Base):
     ''' Class representing the Worker table in the database '''
     __tablename__ = "worker"
-
+    
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
