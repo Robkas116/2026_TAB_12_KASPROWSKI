@@ -7,8 +7,8 @@ from models.vehmodel_model import VehModel, VehModelCreate, VehModelUpdate, VehM
 def create_vehmodel(*, session: Session, model_in: VehModelCreate) -> VehModel:
     """Creates a new vehicle model in the database.
 
-    Uses explicit mapping to transfer data from the Pydantic schema 
-    to the SQLAlchemy model. This ensures strict control over which 
+    Uses explicit mapping to transfer data from the Pydantic schema
+    to the SQLAlchemy model. This ensures strict control over which
     fields are populated during creation.
     """
 
@@ -20,11 +20,13 @@ def create_vehmodel(*, session: Session, model_in: VehModelCreate) -> VehModel:
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
-    
+
     return db_obj
 
 
-def get_all_models(*, session: Session, skip: int = 0, limit: int = 100) -> VehModelsPublic:
+def get_all_models(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> VehModelsPublic:
     """Retrieves a list of vehicle models from the database.
 
     Args:
@@ -50,21 +52,23 @@ def get_vehmodel_by_id(*, session: Session, model_id: int) -> VehModel | None:
     return session.get(VehModel, model_id)
 
 
-def update_vehmodel(*, session: Session, db_model: VehModel, model_in: VehModelUpdate) -> VehModel:
+def update_vehmodel(
+    *, session: Session, db_model: VehModel, model_in: VehModelUpdate
+) -> VehModel:
     """
     Updates an existing vehicle model in the database.
     """
 
     if model_in.name is not None:
         db_model.name = model_in.name
-        
+
     if model_in.make_id is not None:
         db_model.make_id = model_in.make_id
-        
+
     session.add(db_model)
     session.commit()
     session.refresh(db_model)
-    
+
     return db_model
 
 

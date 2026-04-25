@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String, Integer, func
+from sqlalchemy import ForeignKey, String, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -8,7 +8,8 @@ from database.database import Base
 
 
 class VehModel(Base):
-    ''' Class representing the Vehicle Model table in the database '''
+    """Class representing the Vehicle Model table in the database"""
+
     __tablename__ = "vehmodel"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -19,33 +20,38 @@ class VehModel(Base):
     make: Mapped["Make"] = relationship(back_populates="models")
 
 class VehModelBase(BaseModel):
-    ''' Class with common fields for Vehicle Model, used as a base for other schemas '''
+    """Class with common fields for Vehicle Model, used as a base for other schemas"""
+
     name: str = Field(max_length=100)
     make_id: int = Field(description="ID of the associated Make")
 
 
 class VehModelCreate(VehModelBase):
-    ''' 
-    Class with all fields required for creation, 
+    """
+    Class with all fields required for creation,
     it inherits from base with name and email,
     id is generated in the database
-      '''
+    """
+
     pass
 
 
 class VehModelUpdate(VehModelBase):
-    ''' Class with all fields optional for update operations '''
+    """Class with all fields optional for update operations"""
+
     name: str | None = Field(default=None, max_length=100)
     make_id: int | None = Field(default=None)
 
 
 class VehModelPublic(VehModelBase):
-    ''' Class with properties to return, includes id from database '''
+    """Class with properties to return, includes id from database"""
+
     id: int
     model_config = ConfigDict(from_attributes=True)
 
 
 class VehModelsPublic(BaseModel):
-    ''' Class for returning a list of models with a count '''
+    """Class for returning a list of models with a count"""
+
     data: list[VehModelPublic]
     count: int
