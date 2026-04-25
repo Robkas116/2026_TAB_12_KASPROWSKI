@@ -1,16 +1,14 @@
-from typing import TYPE_CHECKING, Optional
-
+from typing import TYPE_CHECKING, Optional, List
 from sqlalchemy import String, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from pydantic import BaseModel, ConfigDict, Field
-
 from database.database import Base
-
+from models.associations import equipment_set_association
+from models.equipment_model import EquipmentPublic
 
 if TYPE_CHECKING:
     from models.equipment_model import Equipment
-
+    from models.version_model import Version
 
 class SetOfEquipment(Base):
     """Represents the set_of_equipment table in the database.
@@ -21,21 +19,22 @@ class SetOfEquipment(Base):
     Attributes:
         id (Mapped[int]): The primary key of the set of equipment record.
         name (Mapped[str]): The name of the set of equipment (max 100 characters).
-        equipment_id (Mapped[int]): The foreign key linking to the equipment table.
-        equipment (Mapped["Equipment"]): The relationship object pointing to the 
-            specific equipment this set belongs to.
+        version_id (Mapped[Optional[int]]): The foreign key linking to the version table.
+        version (Mapped[Optional["Version"]]): The relationship object pointing to the 
+            specific version this set belongs to.
     """
     __tablename__ = "set_of_equipment"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     
-    equipment_id: Mapped[int] = mapped_column(ForeignKey("equipment.id"))
+    equipments: Mapped[List["Equipment"]] = relationship(
+        secondary=equipment_set_association,
+        back_populates="sets"
+    )
 
-    equipment: Mapped["Equipment"] = relationship(back_populates="sets")
-
-
-# --- API schemas (Pydantic) ---
+    version_id: Mapped[Optional[int]] = mapped_column(ForeignKey("version.id"), nullable=False)
+    version: Mapped[Optional["Version"]] = relationship(back_populates="sets")
 
 class SetOfEquipmentBase(BaseModel):
     """Base Pydantic schema containing common fields for SetOfEquipment.
@@ -44,10 +43,10 @@ class SetOfEquipmentBase(BaseModel):
 
     Attributes:
         name (str): The name of the set of equipment, maximum 100 characters.
-        equipment_id (int): The ID of the equipment to which this set belongs.
+        version_id (int): The ID of the version to which this set belongs.
     """
     name: str = Field(max_length=100)
-    equipment_id: int
+    version_id: Optional[int] = None
 
 
 class SetOfEquipmentCreate(SetOfEquipmentBase):
@@ -67,10 +66,10 @@ class SetOfEquipmentUpdate(SetOfEquipmentBase):
 
     Attributes:
         name (Optional[str]): The new name of the set of equipment. Defaults to None.
-        equipment_id (Optional[int]): The new equipment ID if moving the set to another equipment. Defaults to None.
+        version_id (Optional[int]): The new version ID if moving the set to another version. Defaults to None.
     """
     name: Optional[str] = Field(default=None, max_length=100)
-    equipment_id: Optional[int] = None
+    version_id: Optional[int] = None
 
 
 class SetOfEquipmentPublic(SetOfEquipmentBase):
@@ -81,10 +80,11 @@ class SetOfEquipmentPublic(SetOfEquipmentBase):
 
     Attributes:
         id (int): The database identifier of the set of equipment.
+        equipments (list[EquipmentPublic]): A list of equipment objects that are part of this set.
         model_config (ConfigDict): Configuration allowing Pydantic to read from ORM object attributes.
     """
     id: int
-    
+    equipments: list[EquipmentPublic] = []
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -97,5 +97,9 @@ class SetOfEquipmentsPublic(BaseModel):
         data (list[SetOfEquipmentPublic]): A list of set of equipment objects.
         count (int): The total number of items returned.
     """
-    data: list[SetOfEquipmentPublic]
+    data: list[SetOfEquipmentPublic] 
     count: int
+   
+    model_config = ConfigDict(from_attributes=True)
+
+

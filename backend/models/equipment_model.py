@@ -1,12 +1,9 @@
 from typing import TYPE_CHECKING, Optional, List
-
 from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from pydantic import BaseModel, ConfigDict, Field
-
 from database.database import Base
-
+from models.associations import equipment_set_association
 
 if TYPE_CHECKING:
     from models.set_of_equipment_model import SetOfEquipment 
@@ -29,10 +26,11 @@ class Equipment(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    sets: Mapped[list["SetOfEquipment"]] = relationship(back_populates="equipment")
+    sets: Mapped[list["SetOfEquipment"]] = relationship(
+        secondary=equipment_set_association,
+        back_populates="equipments"
+    )
 
-
-# --- API schemas (Pydantic) ---
 
 class EquipmentBase(BaseModel):
     """Base Pydantic schema containing common fields for Equipment.
@@ -91,3 +89,6 @@ class EquipmentsPublic(BaseModel):
     """
     data: list[EquipmentPublic]
     count: int
+
+
+    
