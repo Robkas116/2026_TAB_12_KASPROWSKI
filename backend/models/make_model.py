@@ -18,11 +18,8 @@ class Make(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    # Relacja ORM (One-to-Many). 
-    # Typujemy jako listę modeli. Używamy stringa "Model" dla uniknięcia błędów cyklicznych importów.
     models: Mapped[list["VehModel"]] = relationship(back_populates="make")
 
-#API schemas (Pydantic)
 
 class MakeBase(BaseModel):
     ''' Class with common fields for Make, used as a base for other schemas '''

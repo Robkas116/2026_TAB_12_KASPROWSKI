@@ -29,10 +29,8 @@ def get_all_makes(*, session: Session, skip: int = 0, limit: int = 100) -> Makes
     Returns:
         MakesPublic: A Pydantic schema containing the list of makes and the total count.
     """
-    # gets number of all Makes in db
     total_count = session.scalar(select(func.count()).select_from(Make)) or 0
 
-    # selects the partition of Makes
     statement = select(Make).offset(skip).limit(limit)
     makes = session.scalars(statement).all()
     return MakesPublic(data=makes, count=total_count)
@@ -42,14 +40,13 @@ def get_make_by_id(*, session: Session, make_id: int) -> MakePublic | None:
     """
     Finds a make by its ID in the database. Returns None if not found.
     """
-    # getting by primary key
     return session.get(Make, make_id)
 
 def update_make(*, session: Session, db_make: Make, make_in: MakeUpdate) -> MakePublic:
     """
     Updating a make in the database.
     """
-    # update only the fields that were provided (exclude_unset=True)
+
     update_data = make_in.model_dump(exclude_unset=True)
     
     for field, value in update_data.items():

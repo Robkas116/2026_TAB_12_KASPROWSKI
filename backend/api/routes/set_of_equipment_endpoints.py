@@ -53,7 +53,6 @@ def get_sets_of_equipments(
     db: Session = Depends(get_db),
     skip: int = Query(0, description="Number of items to skip (offset)"),
     limit: int = Query(100, le=1000, description="Max number of items to return"),
-    # POPRAWKA: Nowy, opcjonalny parametr zapytania
     version_id: Optional[int] = Query(None, description="Filter sets by a specific Version ID")
 ):
     """Retrieves all Sets of Equipment, optionally filtered by version.

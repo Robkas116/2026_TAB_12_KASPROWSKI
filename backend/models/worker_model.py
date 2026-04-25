@@ -40,7 +40,6 @@ class WorkerUpdate(BaseModel):
 class WorkerPublic(WorkerBase):
     ''' Class with properties to return, includes id from database '''
     id: int
-    #Translate db object to JSON using attribute names
     model_config = ConfigDict(from_attributes=True)
 
 
