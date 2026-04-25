@@ -22,9 +22,6 @@ class Make(Base):
     models: Mapped[list["VehModel"]] = relationship(back_populates="make")
 
 
-# API schemas (Pydantic)
-
-
 class MakeBase(BaseModel):
     """Class with common fields for Make, used as a base for other schemas"""
 

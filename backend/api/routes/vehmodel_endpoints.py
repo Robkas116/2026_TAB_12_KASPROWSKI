@@ -24,7 +24,6 @@ def create_model(model_in: VehModelCreate, db: Session = Depends(get_db)):
     try:
         return vehmodel_crud.create_vehmodel(session=db, model_in=model_in)
     except IntegrityError:
-        # Rollback the session if the Foreign Key constraint fails
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -77,7 +76,6 @@ def update_model(
             session=db, db_model=db_model, model_in=model_in
         )
     except IntegrityError:
-        # Catch FK errors if the user tries to update to a non-existent make_id
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -101,9 +99,11 @@ def delete_model(model_id: int, db: Session = Depends(get_db)):
         vehmodel_crud.delete_vehmodel(session=db, db_model=db_model)
         return {"message": "Vehicle Model has been deleted successfully."}
     except IntegrityError:
-        # Rollback is necessary after an IntegrityError to keep the session usable
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Cannot delete this Model because there are specific Vehicles associated with it.",
         )
+
+        
+    

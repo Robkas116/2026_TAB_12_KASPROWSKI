@@ -72,7 +72,6 @@ def delete_make(make_id: int, db: Session = Depends(get_db)):
         make_crud.delete_make(session=db, db_make=db_make)
         return {"message": "Make has been deleted successfully"}
     except IntegrityError:
-        # Rollback when FK problem
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

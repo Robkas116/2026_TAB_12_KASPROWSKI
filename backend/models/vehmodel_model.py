@@ -15,19 +15,9 @@ class VehModel(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    # Klucz obcy - Poziom bazy danych.
-    # ondelete="RESTRICT" zapobiega usunięciu marki, jeśli posiada powiązane modele.
-    make_id: Mapped[int] = mapped_column(
-        ForeignKey("make.id", ondelete="RESTRICT"), nullable=False
-    )
+    make_id: Mapped[int] = mapped_column(ForeignKey("make.id", ondelete="RESTRICT"), nullable=False)
 
-    # Relacja ORM (Many-to-One).
-    # Pozwala z poziomu obiektu Model odwołać się do obiektu Make.
     make: Mapped["Make"] = relationship(back_populates="models")
-
-
-# API schemas (Pydantic)
-
 
 class VehModelBase(BaseModel):
     """Class with common fields for Vehicle Model, used as a base for other schemas"""
@@ -57,7 +47,6 @@ class VehModelPublic(VehModelBase):
     """Class with properties to return, includes id from database"""
 
     id: int
-    # Translate db object to JSON using attribute names
     model_config = ConfigDict(from_attributes=True)
 
 
