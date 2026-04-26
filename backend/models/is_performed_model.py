@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date as dt_date
 
 from sqlalchemy import Integer, Date, Enum
 from sqlalchemy.orm import Mapped, mapped_column
@@ -21,7 +21,7 @@ class IsPerformed(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
-    date: Mapped[date] = mapped_column(Date, nullable=False)
+    date: Mapped[dt_date] = mapped_column(Date, nullable=False)
     state: Mapped[State] = mapped_column(Enum(State), nullable=False)
 
 
@@ -29,7 +29,7 @@ class IsPerformedBase(BaseModel):
     """Class with common fields for IsPerformed, used as a base for other schemas"""
 
     price: int = Field(ge=0)
-    date: date
+    date: dt_date
     state: State
 
 
@@ -47,7 +47,7 @@ class IsPerformedUpdate(IsPerformedBase):
     """Class with all fields optional for update operations"""
 
     price: int | None = Field(default=None, ge=0)
-    date: date | None = Field(default=None)
+    date: dt_date | None = Field(default=None)
     state: State | None = Field(default=None)
 
 
