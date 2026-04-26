@@ -44,7 +44,6 @@ class VehicleUpdate(BaseModel):
 class VehiclePublic(VehicleBase):
         """Class with properties to return, includes id from database"""
         id: int
-        # Translate db object to JSON using attribute names
         model_config = ConfigDict(from_attributes=True)
 class VehiclesPublic(BaseModel):
         """Class for returning a list of vehicles with a count"""
