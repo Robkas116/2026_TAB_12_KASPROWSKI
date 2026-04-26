@@ -8,25 +8,42 @@ export const makeApi = {
     return response.json();
   },
 
+    
   create: async (data: { name: string }) => {
     const response = await fetch(`${API_URL}/make/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error(`Make POST Error: ${response.status}`);
+      if (!response.ok) {
+          const errorData = await response.json();
+          if (response.status === 422 && errorData.detail) {
+              const ValidationMessage = errorData.detail[0].msg;
+              throw new Error(`Validation Error: ${ValidationMessage}`);
+          }
+          throw new Error(`Failed to create Make: ${response.status}`);
+    } 
     return response.json();
   },
 
-  update: async (id: number, data: { name: string }) => {
+
+  update: async (id: number, data: any) => {
     const response = await fetch(`${API_URL}/make/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error(`Make PATCH Error: ${response.status}`);
+      if (!response.ok) {
+          const errorData = await response.json();
+          if (response.status === 422 && errorData.detail) {
+              const ValidationMessage = errorData.detail[0].msg;
+              throw new Error(`Validation Error: ${ValidationMessage}`);
+          }
+          throw new Error(`Failed to update Make: ${response.status}`);
+    } 
     return response.json();
   },
+
 
   delete: async (id: number) => {
     const response = await fetch(`${API_URL}/make/${id}`, {

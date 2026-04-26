@@ -47,7 +47,7 @@ const entityConfig: Record<string, { title: string; fields: FormField[] }> = {
 
 
 
-export default function AddMakeModal({ isOpen, onClose, onSuccess, entityType }: AddModalProps) {
+export default function AddModal({ isOpen, onClose, onSuccess, entityType }: AddModalProps) {
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);

@@ -19,7 +19,14 @@ def create_make(
     """
     Create a new Make in the database.
     """
-    return make_crud.create_make(session=db, make_in=make_in)
+    try:
+        return make_crud.create_make(session=db, make_in=make_in)
+    except:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error creating Make."
+        )
 
 
 @router.get("/", response_model=MakesPublic)

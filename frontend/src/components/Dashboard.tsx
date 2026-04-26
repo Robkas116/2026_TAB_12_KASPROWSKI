@@ -6,8 +6,11 @@ import { vehicleApi } from "@/lib/api/vehicle";
 import { workerApi } from "@/lib/api/worker";
 
 import AddModal from "./modals/AddModal";
+import DataTable from "./DataTable";
+import DeleteModal from "./modals/DeleteModal";
+import EditModal from "./modals/EditModal";
 // Entities from DB
-type EntityType = "Makes" | "Vehicles" | "Workers" | "Reservations" | "Actions" | "Models";
+type EntityType = "Makes" | "Vehicles" | "Workers" | "Reservations" | "Actions" | "Models" | "Versions";
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState<EntityType>("Makes");
@@ -15,6 +18,12 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<any>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [itemToEdit, setItemToEdit] = useState<any>(null);
+
     // Loading data depending on the active tab
     const loadData = async (entity: EntityType) => {
         setLoading(true);
@@ -38,12 +47,75 @@ export default function Dashboard() {
         }
     };
 
+    const updateData = async (entity: EntityType, id: number, updatedData: any) => {
+        setLoading(true);
+        setError(null);
+        try {
+            let result;
+            switch (entity) {
+                case "Makes":
+                    result = await makeApi.update(id, updatedData);
+                    break;
+                default:
+                    alert(`Updating ${entity} is not implemented yet.`);
+                    return;
+            }
+            setIsEditModalOpen(false);
+            setItemToEdit(null);
+            loadData(activeTab);
+
+        } catch (err: any) {
+            alert(`Error updating item: ${err.message}`);
+        }
+    }
+
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+            switch (activeTab) {
+                case "Makes":
+                    await makeApi.delete(itemToDelete.id);
+                    break;
+                default:
+                    alert(`Deleting ${activeTab} is not implemented yet.`);
+                    setIsDeleting(false);
+                    setIsDeleteModalOpen(false);
+                    return;
+            }
+
+            setIsDeleteModalOpen(false);
+            setItemToDelete(null);
+            loadData(activeTab);
+
+        } catch (err: any) {
+            alert(`Error deleting item: ${err.message}`);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     // changing active tab
     useEffect(() => {
         loadData(activeTab);
     }, [activeTab]);
 
-    const tabs: EntityType[] = ["Makes", "Vehicles", "Workers", "Reservations", "Actions", "Models"];
+    const tabs: EntityType[] = ["Makes", "Vehicles", "Workers", "Reservations", "Actions", "Models", "Versions"];
+
+    const handleEditClick = (item: any) => {
+        setItemToEdit(item);
+        setIsEditModalOpen(true);
+    };
+
+    const handleDeleteClick = (id: number) => {
+        const items = Array.isArray(data) ? data : (data?.items || data?.data || []);
+        const item = items.find((i: any) => i.id === id);
+        setItemToDelete(item);
+        setIsDeleteModalOpen(true);
+    };
 
     const handleAddNewClick = () => {
         if (activeTab === "Makes") {
@@ -52,6 +124,8 @@ export default function Dashboard() {
             alert(`Adding new ${activeTab.slice(0, -1)} is not implemented yet.`);
         }
     };
+
+
 
 
     return (
@@ -75,7 +149,7 @@ export default function Dashboard() {
             </div>
 
             {/* Showing Results */}
-            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 min-h-[300px]">
+            <div className="bg-gray-300 p-6 rounded-lg shadow-md border border-gray-200 min-h-[300px]">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold text-gray-800">
                         Viewing: <span className="text-blue-600">{activeTab}</span>
@@ -108,9 +182,12 @@ export default function Dashboard() {
                             <p className="text-sm text-gray-500 font-medium">Total records: {data.total}</p>
                         )}
 
-                        <pre className="bg-gray-50 border border-gray-100 p-4 rounded overflow-x-auto text-sm text-gray-800 shadow-inner">
-                            {JSON.stringify(data, null, 2)}
-                        </pre>
+                        <DataTable
+                            items={Array.isArray(data) ? data : (data.items || data.data || [])}
+                            onEdit={handleEditClick}
+                            onDelete={handleDeleteClick}>
+
+                        </DataTable>
                     </div>
                 )}
             </div>
@@ -121,6 +198,28 @@ export default function Dashboard() {
                 onSuccess={() => {
                     loadData(activeTab);
                 }}
+            />
+            <DeleteModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setItemToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                itemName={itemToDelete?.name}
+                isDeleting={isDeleting}
+            />
+            <EditModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setItemToEdit(null);
+                }}
+                onSuccess={(updatedData) => {
+                    updateData(activeTab, itemToEdit.id, updatedData);
+                }}
+                entityType={activeTab}
+                initialData={itemToEdit}
             />
         </div>
     );
