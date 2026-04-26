@@ -1,6 +1,13 @@
 from fastapi import APIRouter
 
-from api.routes import make_endpoints, vehmodel_endpoints, equipment_endpoints, set_of_equipment_endpoints, version_endpoints, action_endpoints
+from api.routes import (
+    make_endpoints,
+    vehmodel_endpoints,
+    equipment_endpoints,
+    set_of_equipment_endpoints,
+    version_endpoints,
+    action_endpoints,
+)
 
 api_router = APIRouter()
 api_router.include_router(make_endpoints.router)

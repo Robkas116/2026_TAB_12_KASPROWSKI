@@ -7,11 +7,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from enum import StrEnum
 from database.database import Base
 
+
 class State(StrEnum):
     AWAITING = "awaiting"
     PERFORMED = "performed"
     COMPLETED = "completed"
-    
+
+
 class IsPerformed(Base):
     """Class representing the is_performed table in the database"""
 

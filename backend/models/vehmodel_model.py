@@ -15,9 +15,12 @@ class VehModel(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    make_id: Mapped[int] = mapped_column(ForeignKey("make.id", ondelete="RESTRICT"), nullable=False)
+    make_id: Mapped[int] = mapped_column(
+        ForeignKey("make.id", ondelete="RESTRICT"), nullable=False
+    )
 
     make: Mapped["Make"] = relationship(back_populates="models")
+
 
 class VehModelBase(BaseModel):
     """Class with common fields for Vehicle Model, used as a base for other schemas"""

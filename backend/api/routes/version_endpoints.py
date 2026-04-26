@@ -4,18 +4,18 @@ from sqlalchemy.exc import IntegrityError
 
 from crud import version_crud
 from database.database import get_db
-from models.version_model import VersionCreate, VersionPublic, VersionUpdate, VersionsPublic
-
-router = APIRouter(
-    prefix="/version",
-    tags=["Versions"]
+from models.version_model import (
+    VersionCreate,
+    VersionPublic,
+    VersionUpdate,
+    VersionsPublic,
 )
 
+router = APIRouter(prefix="/version", tags=["Versions"])
+
+
 @router.post("/", response_model=VersionPublic, status_code=status.HTTP_201_CREATED)
-def create_version(
-    version_in: VersionCreate, 
-    db: Session = Depends(get_db)
-):
+def create_version(version_in: VersionCreate, db: Session = Depends(get_db)):
     """Creates a new Version in the database.
 
     Args:
@@ -34,7 +34,7 @@ def create_version(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Database integrity error. Ensure the provided data is valid."
+            detail="Database integrity error. Ensure the provided data is valid.",
         )
 
 
@@ -42,7 +42,7 @@ def create_version(
 def get_versions(
     db: Session = Depends(get_db),
     skip: int = Query(0, description="Number of items to skip (offset)"),
-    limit: int = Query(100, le=1000, description="Max number of items to return")
+    limit: int = Query(100, le=1000, description="Max number of items to return"),
 ):
     """Retrieves all Versions with pagination.
 
@@ -58,13 +58,10 @@ def get_versions(
 
 
 @router.get("/{version_id}", response_model=VersionPublic)
-def get_version(
-    version_id: int, 
-    db: Session = Depends(get_db)
-):
+def get_version(version_id: int, db: Session = Depends(get_db)):
     """Retrieves a specific Version by its ID.
 
-    Queries the database for a Version matching the provided ID. If the 
+    Queries the database for a Version matching the provided ID. If the
     version does not exist, an HTTP error is raised.
 
     Args:
@@ -80,21 +77,18 @@ def get_version(
     db_version = version_crud.get_version_by_id(session=db, version_id=version_id)
     if not db_version:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Version not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Version not found."
         )
-    
+
     return db_version
 
 
 @router.patch("/{version_id}", response_model=VersionPublic)
 def update_version(
-    version_id: int, 
-    version_in: VersionUpdate, 
-    db: Session = Depends(get_db)
+    version_id: int, version_in: VersionUpdate, db: Session = Depends(get_db)
 ):
-    """Updates a Version. 
-    
+    """Updates a Version.
+
     Only the fields provided in the request body will be updated.
 
     Args:
@@ -106,35 +100,33 @@ def update_version(
         The updated version object.
 
     Raises:
-        HTTPException: If the version is not found (Status 404) or if a database 
+        HTTPException: If the version is not found (Status 404) or if a database
             integrity error occurs during the update (Status 400).
     """
     db_version = version_crud.get_version_by_id(session=db, version_id=version_id)
     if not db_version:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Version not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Version not found."
         )
-    
+
     try:
-        return version_crud.update_version(session=db, db_version=db_version, version_in=version_in)
+        return version_crud.update_version(
+            session=db, db_version=db_version, version_in=version_in
+        )
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Database integrity error during update."
+            detail="Database integrity error during update.",
         )
 
 
 @router.delete("/{version_id}", response_model=dict[str, str])
-def delete_version(
-    version_id: int, 
-    db: Session = Depends(get_db)
-):
+def delete_version(version_id: int, db: Session = Depends(get_db)):
     """Deletes a Version by its ID.
 
-    Attempts to remove the version from the database. If there are dependent 
-    records (like Sets of Equipment or Vehicles) that prevent deletion, an 
+    Attempts to remove the version from the database. If there are dependent
+    records (like Sets of Equipment or Vehicles) that prevent deletion, an
     HTTP conflict error is raised.
 
     Args:
@@ -145,16 +137,15 @@ def delete_version(
         A dictionary containing a success message.
 
     Raises:
-        HTTPException: If the version is not found (Status 404) or if deletion 
+        HTTPException: If the version is not found (Status 404) or if deletion
             fails due to foreign key constraints (Status 409).
     """
     db_version = version_crud.get_version_by_id(session=db, version_id=version_id)
     if not db_version:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Version not found."
+            status_code=status.HTTP_404_NOT_FOUND, detail="Version not found."
         )
-    
+
     try:
         version_crud.delete_version(session=db, db_version=db_version)
         return {"message": "Version has been deleted successfully."}
@@ -162,8 +153,5 @@ def delete_version(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot delete this Version because there are Sets of Equipment or Vehicles associated with it."
+            detail="Cannot delete this Version because there are Sets of Equipment or Vehicles associated with it.",
         )
-
-
-        
