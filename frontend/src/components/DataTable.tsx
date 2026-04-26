@@ -13,6 +13,8 @@ export default function DataTable({ items, onEdit, onDelete }: DataTableProps) {
 
     const columns = Object.keys(items[0]);
 
+    console.log("Co dokładnie siedzi w zmiennej 'data'?", items);
+    console.log("Czy data.data to tablica?", Array.isArray(items));
     return (
         <div className="overflow-x-auto bg-blue-200 rounded-lg border border-gray-200">
             <table className="min-w-full text-left text-sm whitespace-nowrap">

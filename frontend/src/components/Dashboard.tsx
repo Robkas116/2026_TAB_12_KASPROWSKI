@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { makeApi } from "@/lib/api/make";
 import { vehmodelApi } from "@/lib/api/vehmodel";
+import { actionApi } from "@/lib/api/action";
+
 import { EntityType } from "@/types";
 import { INITIAL_STATES } from "@/lib/forms";
 
@@ -38,6 +40,8 @@ export default function Dashboard() {
                 case "Models":
                     result = await vehmodelApi.getAll();
                     break;
+                case "Actions":
+                    result = await actionApi.getAll();
                 default:
                     result = { message: `Data for ${entity} not implemented yet.` };
             }
@@ -61,6 +65,9 @@ export default function Dashboard() {
                 case "Models":
                     result = await vehmodelApi.update(id, updatedData);
                     break;
+                case "Actions":
+                    result = await actionApi.update(id, updatedData);
+                    break;
                 default:
                     alert(`Updating ${entity} is not implemented yet.`);
                     return;
@@ -80,9 +87,12 @@ export default function Dashboard() {
                 case "Makes":
                     await makeApi.create(newData);
                     break;
-                 case "Models":
+                case "Models":
                      await vehmodelApi.create(newData);
                      break;
+                case "Actions":
+                    await actionApi.create(newData);
+                    break;
                 default:
                     alert(`Adding ${entity} is not implemented yet.`);
                     return;
@@ -108,6 +118,9 @@ export default function Dashboard() {
                     break;
                 case "Models":
                     await vehmodelApi.delete(itemToDelete.id);
+                    break;
+                case "Actions":
+                    await actionApi.delete(itemToDelete.id);
                     break;
                 default:
                     alert(`Deleting ${activeTab} is not implemented yet.`);
@@ -151,6 +164,7 @@ export default function Dashboard() {
         switch (activeTab) {
             case "Makes":
             case "Models":
+            case "Actions":
                 setIsAddModalOpen(true);
                 break;
             default:
@@ -212,14 +226,13 @@ export default function Dashboard() {
                         {data.total !== undefined && (
                             <p className="text-sm text-gray-500 font-medium">Total records: {data.total}</p>
                         )}
-
                         <DataTable
                             items={Array.isArray(data) ? data : (data.items || data.data || [])}
                             onEdit={handleEditClick}
                             onDelete={handleDeleteClick}>
 
                         </DataTable>
-                    </div>
+                    </div>  
                 )}
             </div>
             <AddModal

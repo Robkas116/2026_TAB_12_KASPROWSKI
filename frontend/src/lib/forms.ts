@@ -6,6 +6,6 @@ export const INITIAL_STATES: Record<EntityType, any> = {
     Vehicles: { state: "" },
     Models: { name: "", make_id: "" },
     Reservations: {},
-    Actions: {}
+    Actions: { name: "", type: "" }
 };
 
