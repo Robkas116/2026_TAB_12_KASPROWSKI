@@ -3,7 +3,7 @@ from datetime import date as dt_date
 from sqlalchemy import Integer, Date, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from enum import StrEnum
 from database.database import Base
 
@@ -49,6 +49,23 @@ class IsPerformedUpdate(IsPerformedBase):
     price: int | None = Field(default=None, ge=0)
     date: dt_date | None = Field(default=None)
     state: State | None = Field(default=None)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_explicit_nulls(cls, data):
+        if not isinstance(data, dict):
+            return data
+
+        null_fields = [
+            field
+            for field in ("price", "date", "state")
+            if data.get(field) is None and field in data
+        ]
+        if null_fields:
+            fields = ", ".join(null_fields)
+            raise ValueError(f"Null is not allowed for fields: {fields}.")
+
+        return data
 
 
 class IsPerformedPublic(IsPerformedBase):

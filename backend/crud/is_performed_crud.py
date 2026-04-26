@@ -1,4 +1,5 @@
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from models.is_performed_model import (
@@ -51,7 +52,11 @@ def update_is_performed(
         setattr(db_is_performed, field, value)
 
     session.add(db_is_performed)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise ValueError("Invalid update payload for is_performed.") from exc
     session.refresh(db_is_performed)
     return db_is_performed
 

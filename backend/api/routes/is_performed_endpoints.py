@@ -69,9 +69,17 @@ def update_is_performed(
             status_code=status.HTTP_404_NOT_FOUND, detail="IsPerformed not found."
         )
 
-    return is_performed_crud.update_is_performed(
-        session=db, db_is_performed=db_is_performed, is_performed_in=is_performed_in
-    )
+    try:
+        return is_performed_crud.update_is_performed(
+            session=db,
+            db_is_performed=db_is_performed,
+            is_performed_in=is_performed_in,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
 
 
 @router.delete("/{is_performed_id}", response_model=dict[str, str])
