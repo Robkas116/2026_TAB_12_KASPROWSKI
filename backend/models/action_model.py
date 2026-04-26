@@ -1,4 +1,4 @@
-from sqlalchemy import String, Integer
+from sqlalchemy import Enum, String, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -17,7 +17,7 @@ class Action(Base):
     __tablename__ = "action"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    type: Mapped[ActionType] = mapped_column(String(50), nullable=False)
+    type: Mapped[ActionType] = mapped_column(Enum(ActionType), nullable=False)
 
 
 class ActionBase(BaseModel):
