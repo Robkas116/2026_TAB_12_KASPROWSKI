@@ -1,10 +1,13 @@
+from typing import TYPE_CHECKING
 from sqlalchemy import String, Integer
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pydantic import BaseModel, ConfigDict, Field, EmailStr
 
 from database.database import Base
 
+if TYPE_CHECKING:
+    from models.vehicle_model import Vehicle
 
 class Worker(Base):
     """Class representing the Worker table in the database"""
@@ -15,7 +18,7 @@ class Worker(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
 
-
+    vehicles: Mapped[list["Vehicle"]] = relationship(back_populates="worker")
 # API schemas (Pydantic)
 
 

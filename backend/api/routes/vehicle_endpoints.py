@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from typing import Optional 
 from crud import vehicle_crud
 from database.database import get_db
 from models.vehicle_model import (

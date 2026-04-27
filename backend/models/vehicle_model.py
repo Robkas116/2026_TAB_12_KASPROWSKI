@@ -1,14 +1,13 @@
-from typing import TYPE_CHECKING, Optional, List
+from typing import Optional
 from sqlalchemy import Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pydantic import BaseModel, ConfigDict
 from database.database import Base
 
+from models.vehmodel_model import VehModel
+from models.version_model import Version
+from models.worker_model import Worker
 
-if TYPE_CHECKING:
-    from models.vehmodel_model import VehModel
-    from models.version_model import Version
-    from models.worker_model import Worker
 class Vehicle(Base):
     """Class representing the Vehicle table in the database, with relationships to VehModel and Version."""
     __tablename__ = "vehicle"
@@ -19,11 +18,11 @@ class Vehicle(Base):
     veh_model_id: Mapped[int] = mapped_column(ForeignKey("vehmodel.id", ondelete="RESTRICT"), nullable=False)
     version_id: Mapped[int] = mapped_column(ForeignKey("version.id", ondelete="RESTRICT"), nullable=False)
     
-    worker_id: Mapped[int]= mapped_column(Integer, ForeignKey("worker.id", ondelete="SET NULL"), nullable=True)
+    worker_id: Mapped[int]= mapped_column(ForeignKey("worker.id", ondelete="SET NULL"), nullable=True)
     
-    veh_model: Mapped["VehModel"] = relationship()
-    version: Mapped["Version"] = relationship()
-    worker: Mapped["Worker"] = relationship()
+    veh_model: Mapped["VehModel"] = relationship(back_populates="vehicles")
+    version: Mapped["Version"] = relationship(back_populates="vehicles")
+    worker: Mapped["Worker"] = relationship(back_populates="vehicles")
 
 class VehicleBase(BaseModel):
         """Base class for Vehicle, containing common fields."""
