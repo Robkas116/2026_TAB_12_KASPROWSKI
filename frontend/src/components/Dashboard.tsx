@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { makeApi } from "@/lib/api/make";
-import { vehmodelApi } from "@/lib/api/vehmodel";
+import { useEffect, useState } from "react";
 import { actionApi } from "@/lib/api/action";
-
-import { EntityType } from "@/types";
+import { equipmentApi } from "@/lib/api/equipment";
+import { makeApi } from "@/lib/api/make";
+import { setofequipmentApi } from "@/lib/api/set_of_equipment";
+import { vehmodelApi } from "@/lib/api/vehmodel";
+import { versionApi } from "@/lib/api/version";
 import { INITIAL_STATES } from "@/lib/forms";
-
-import AddModal from "./modals/AddModal";
+import type { EntityType } from "@/types";
 import DataTable from "./DataTable";
+import AddModal from "./modals/AddModal";
 import DeleteModal from "./modals/DeleteModal";
 import EditModal from "./modals/EditModal";
 
@@ -32,7 +33,7 @@ export default function Dashboard() {
         setData(null);
 
         try {
-            let result;
+            let result: any;
             switch (entity) {
                 case "Makes":
                     result = await makeApi.getAll();
@@ -42,6 +43,16 @@ export default function Dashboard() {
                     break;
                 case "Actions":
                     result = await actionApi.getAll();
+                    break;
+                case "Equipments":
+                    result = await equipmentApi.getAll();
+                    break;
+                case "SetOfEquipments":
+                    result = await setofequipmentApi.getAll();
+                    break;
+                case "Versions":
+                    result = await versionApi.getAll();
+                    break;
                 default:
                     result = { message: `Data for ${entity} not implemented yet.` };
             }
@@ -53,11 +64,15 @@ export default function Dashboard() {
         }
     };
 
-    const updateData = async (entity: EntityType, id: number, updatedData: any) => {
+    const updateData = async (
+        entity: EntityType,
+        id: number,
+        updatedData: any,
+    ) => {
         setLoading(true);
         setError(null);
         try {
-            let result;
+            let result: any;
             switch (entity) {
                 case "Makes":
                     result = await makeApi.update(id, updatedData);
@@ -68,6 +83,15 @@ export default function Dashboard() {
                 case "Actions":
                     result = await actionApi.update(id, updatedData);
                     break;
+                case "Equipments":
+                    result = await equipmentApi.update(id, updatedData);
+                    break;
+                case "SetOfEquipments":
+                    result = await setofequipmentApi.update(id, updatedData);
+                    break;
+                case "Versions":
+                    result = await versionApi.update(id, updatedData);
+                    break;
                 default:
                     alert(`Updating ${entity} is not implemented yet.`);
                     return;
@@ -75,11 +99,10 @@ export default function Dashboard() {
             setIsEditModalOpen(false);
             setItemToEdit(null);
             loadData(activeTab);
-
         } catch (err: any) {
             alert(`Error updating item: ${err.message}`);
         }
-    }
+    };
 
     const addData = async (entity: EntityType, newData: any) => {
         try {
@@ -88,10 +111,19 @@ export default function Dashboard() {
                     await makeApi.create(newData);
                     break;
                 case "Models":
-                     await vehmodelApi.create(newData);
-                     break;
+                    await vehmodelApi.create(newData);
+                    break;
                 case "Actions":
                     await actionApi.create(newData);
+                    break;
+                case "Equipments":
+                    await equipmentApi.create(newData);
+                    break;
+                case "SetOfEquipments":
+                    await setofequipmentApi.create(newData);
+                    break;
+                case "Versions":
+                    await versionApi.create(newData);
                     break;
                 default:
                     alert(`Adding ${entity} is not implemented yet.`);
@@ -99,19 +131,17 @@ export default function Dashboard() {
             }
             setIsAddModalOpen(false);
             loadData(activeTab);
-            
         } catch (err: any) {
             alert(`Error adding item: ${err.message}`);
         }
     };
-
 
     const confirmDelete = async () => {
         if (!itemToDelete) return;
 
         setIsDeleting(true);
         try {
-            // await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
             switch (activeTab) {
                 case "Makes":
                     await makeApi.delete(itemToDelete.id);
@@ -121,6 +151,15 @@ export default function Dashboard() {
                     break;
                 case "Actions":
                     await actionApi.delete(itemToDelete.id);
+                    break;
+                case "Equipments":
+                    await equipmentApi.delete(itemToDelete.id);
+                    break;
+                case "SetOfEquipments":
+                    await setofequipmentApi.delete(itemToDelete.id);
+                    break;
+                case "Versions":
+                    await versionApi.delete(itemToDelete.id);
                     break;
                 default:
                     alert(`Deleting ${activeTab} is not implemented yet.`);
@@ -132,7 +171,6 @@ export default function Dashboard() {
             setIsDeleteModalOpen(false);
             setItemToDelete(null);
             loadData(activeTab);
-
         } catch (err: any) {
             alert(`Error deleting item: ${err.message}`);
         } finally {
@@ -145,7 +183,17 @@ export default function Dashboard() {
         loadData(activeTab);
     }, [activeTab]);
 
-    const tabs: EntityType[] = ["Makes", "Vehicles", "Workers", "Reservations", "Actions", "Models"];
+    const tabs: EntityType[] = [
+        "Makes",
+        "Vehicles",
+        "Workers",
+        "Reservations",
+        "Actions",
+        "Models",
+        "Equipments",
+        "SetOfEquipments",
+        "Versions",
+    ];
 
     const handleEditClick = (item: any) => {
         setItemToEdit(item);
@@ -153,25 +201,26 @@ export default function Dashboard() {
     };
 
     const handleDeleteClick = (id: number) => {
-        const items = Array.isArray(data) ? data : (data?.items || data?.data || []);
+        const items = Array.isArray(data) ? data : data?.items || data?.data || [];
         const item = items.find((i: any) => i.id === id);
         setItemToDelete(item);
         setIsDeleteModalOpen(true);
     };
 
     const handleAddNewClick = () => {
-
         switch (activeTab) {
             case "Makes":
             case "Models":
             case "Actions":
+            case "Equipments":
+            case "SetOfEquipments":
+            case "Versions":
                 setIsAddModalOpen(true);
                 break;
             default:
                 alert(`Adding new ${activeTab.slice(0, -1)} is not implemented yet.`);
         }
     };
-
 
     return (
         <div className="max-w-5xl">
@@ -181,11 +230,12 @@ export default function Dashboard() {
             <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-4">
                 {tabs.map((tab) => (
                     <button
+                        type="button"
                         key={tab}
                         onClick={() => setActiveTab(tab)}
                         className={`px-6 py-2 rounded-t-lg font-semibold transition-colors ${activeTab === tab
-                            ? "bg-blue-600 text-white border-b-4 border-blue-800"
-                            : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                ? "bg-blue-600 text-white border-b-4 border-blue-800"
+                                : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                             }`}
                     >
                         {tab}
@@ -201,8 +251,10 @@ export default function Dashboard() {
                     </h3>
 
                     <button
+                        type="button"
                         onClick={handleAddNewClick}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium">
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium"
+                    >
                         + Add New {activeTab.slice(0, -1)}
                     </button>
                 </div>
@@ -224,15 +276,16 @@ export default function Dashboard() {
                     <div className="space-y-4">
                         {/* Showing results */}
                         {data.total !== undefined && (
-                            <p className="text-sm text-gray-500 font-medium">Total records: {data.total}</p>
+                            <p className="text-sm text-gray-500 font-medium">
+                                Total records: {data.total}
+                            </p>
                         )}
                         <DataTable
-                            items={Array.isArray(data) ? data : (data.items || data.data || [])}
+                            items={Array.isArray(data) ? data : data.items || data.data || []}
                             onEdit={handleEditClick}
-                            onDelete={handleDeleteClick}>
-
-                        </DataTable>
-                    </div>  
+                            onDelete={handleDeleteClick}
+                        ></DataTable>
+                    </div>
                 )}
             </div>
             <AddModal
