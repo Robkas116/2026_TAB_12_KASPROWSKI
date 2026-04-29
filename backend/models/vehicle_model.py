@@ -1,51 +1,64 @@
-from typing import Optional
-from sqlalchemy import Integer, ForeignKey
+from typing import Optional, TYPE_CHECKING
+from sqlalchemy import Integer, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pydantic import BaseModel, ConfigDict
 from database.database import Base
 
 from models.vehmodel_model import VehModel
 from models.version_model import Version
-from models.worker_model import Worker
+
+if TYPE_CHECKING:
+    from models.caretaker_model import Caretaker
+
 
 class Vehicle(Base):
-    """Class representing the Vehicle table in the database, with relationships to VehModel and Version."""
+    """Class representing the Vehicle table. Now linked to Caretaker instead of Worker."""
     __tablename__ = "vehicle"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
 
-    
     veh_model_id: Mapped[int] = mapped_column(ForeignKey("vehmodel.id", ondelete="RESTRICT"), nullable=False)
     version_id: Mapped[int] = mapped_column(ForeignKey("version.id", ondelete="RESTRICT"), nullable=False)
-    
-    worker_id: Mapped[int]= mapped_column(ForeignKey("worker.id", ondelete="SET NULL"), nullable=True)
-    
+
+    # Klucz obcy do Caretakers (Relacja 1:1)
+    # unique=True zapewnia, że jeden Caretaker nie zostanie przypisany do dwóch aut
+    caretaker_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("caretaker.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True
+    )
+
+    # Nowe pole state
+    state: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
     veh_model: Mapped["VehModel"] = relationship(back_populates="vehicles")
     version: Mapped["Version"] = relationship(back_populates="vehicles")
-    worker: Mapped["Worker"] = relationship(back_populates="vehicles")
+    caretaker: Mapped["Caretaker"] = relationship(back_populates="vehicle")
+
 
 class VehicleBase(BaseModel):
-        """Base class for Vehicle, containing common fields."""
-        veh_model_id: int
-        version_id: int
-        worker_id: int | None = None
+    veh_model_id: int
+    version_id: int
+    caretaker_id: Optional[int] = None
+    state: Optional[str] = None
+
+
 class VehicleCreate(VehicleBase):
-        """Class with all fields required for creation,
-          it inherits from base with veh_model_id and version_id
-           and worker, id is generated in the database"""
-        pass
+    pass
+
+
 class VehicleUpdate(BaseModel):
-        """Class with all fields optional for update operations"""
-        veh_model_id: Optional[int] = None
-        version_id: Optional[int] = None
-        worker_id: Optional[int] = None
+    veh_model_id: Optional[int] = None
+    version_id: Optional[int] = None
+    caretaker_id: Optional[int] = None
+    state: Optional[str] = None  # Umożliwia update pola state
+
 
 class VehiclePublic(VehicleBase):
-        """Class with properties to return, includes id from database"""
-        id: int
-        model_config = ConfigDict(from_attributes=True)
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
 class VehiclesPublic(BaseModel):
-        """Class for returning a list of vehicles with a count"""
-        data: list[VehiclePublic]
-        count: int
-    
+    data: list[VehiclePublic]
+    count: int

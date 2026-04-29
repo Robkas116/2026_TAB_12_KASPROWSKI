@@ -18,11 +18,7 @@ def create_vehicle(*, session: Session, vehicle_in: VehicleCreate) -> VehiclePub
     Returns:
         VehiclePublic: The newly created vehicle object.
     """
-    db_obj = Vehicle(
-        veh_model_id=vehicle_in.veh_model_id,
-        version_id=vehicle_in.version_id,
-        worker_id=vehicle_in.worker_id
-    )
+    db_obj = Vehicle(**vehicle_in.model_dump())
 
     session.add(db_obj)
     session.commit()
@@ -57,30 +53,24 @@ def get_vehicle_by_id(*, session: Session, vehicle_id: int) -> VehiclePublic | N
         VehiclePublic | None: The vehicle object if found, otherwise None.
     """
     return session.get(Vehicle, vehicle_id)
-def update_vehicle(*, session: Session, vehicle_id: int, vehicle_in: VehicleUpdate) -> VehiclePublic | None:
+def update_vehicle(*, session: Session, vehicle_id: int, vehicle_in: VehicleUpdate) -> Vehicle | None:
     """Updates an existing vehicle record in the database.
 
-    The function retrieves the existing vehicle by ID, updates its fields with the provided data,
-    commits the transaction, and returns the updated vehicle.
-
-    Args:
-        session (Session): The database session.
-        vehicle_id (int): The ID of the vehicle to update.
-        vehicle_in (VehicleUpdate): The validated Pydantic schema with data for updating the vehicle.
-
-    Returns:
-        VehiclePublic | None: The updated vehicle object if found and updated, otherwise None.
+    The function retrieves the existing vehicle by ID, updates its fields with
+    the provided data from the schema, and commits the changes.
     """
     db_obj = session.get(Vehicle, vehicle_id)
     if not db_obj:
         return None
 
-    if vehicle_in.veh_model_id is not None:
-        db_obj.veh_model_id = vehicle_in.veh_model_id
-    if vehicle_in.version_id is not None:
-        db_obj.version_id = vehicle_in.version_id
-    if vehicle_in.worker_id is not None:
-        db_obj.worker_id = vehicle_in.worker_id
+
+    update_data = vehicle_in.model_dump(exclude_unset=True)
+
+
+    for key, value in update_data.items():
+
+        setattr(db_obj, key, value)
+
 
     session.commit()
     session.refresh(db_obj)
