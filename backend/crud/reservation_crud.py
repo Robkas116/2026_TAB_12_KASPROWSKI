@@ -18,14 +18,12 @@ def create_reservation(*, session: Session, reservation_in: ReservationCreate) -
     Returns:
         ReservationPublic: The newly created reservation object.
     """
+
     db_obj = Reservation(
-        date_start=reservation_in.date_start,
-        date_end=reservation_in.date_end,
+        date_start_planned=reservation_in.date_start_planned,
+        date_end_planned=reservation_in.date_end_planned,
         price=reservation_in.price,
-        distance=reservation_in.distance,
         purpose=reservation_in.purpose,
-        length=reservation_in.length,
-        state=reservation_in.state,
         vehicle_id=reservation_in.vehicle_id,
         worker_id=reservation_in.worker_id
     )

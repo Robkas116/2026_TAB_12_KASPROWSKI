@@ -45,6 +45,7 @@ def create_reservation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Database integrity error. Ensure the provided vehicle_id and worker_id exist."
         )
+    
 @router.get("/", response_model=ReservationsPublic)
 def get_reservations(
     db: Session = Depends(get_db),
