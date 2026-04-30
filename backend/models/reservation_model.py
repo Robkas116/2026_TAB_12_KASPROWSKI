@@ -1,5 +1,5 @@
 from enum  import StrEnum
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 from datetime import datetime
 from sqlalchemy import Integer, Float, DateTime, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
