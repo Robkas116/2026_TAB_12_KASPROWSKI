@@ -24,7 +24,7 @@ def create_reservation(*, session: Session, reservation_in: ReservationCreate) -
         date_end_planned=reservation_in.date_end_planned,
         price=reservation_in.price,
         purpose=reservation_in.purpose,
-        vehicle_id=reservation_in.vehicle_id,
+       # vehicle_id=reservation_in.vehicle_id,
         worker_id=reservation_in.worker_id
     )
 

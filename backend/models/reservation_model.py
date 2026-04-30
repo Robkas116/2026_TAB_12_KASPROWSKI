@@ -3,12 +3,12 @@ from typing import TYPE_CHECKING, Optional
 from datetime import datetime
 from sqlalchemy import Integer, Float, DateTime, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from database.database import Base
 
-if TYPE_CHECKING:
-    from models.vehicle_model import Vehicle
-    from models.worker_model import Worker
+
+#  from models.vehicle_model import Vehicle
+from models.worker_model import Worker
 
 class Purpose_enum(StrEnum):
     """Enum class for reservation purposes, defining possible values."""
@@ -32,10 +32,10 @@ class Reservation(Base):
     date_end_planned: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     price: Mapped[float] = mapped_column(Float, nullable=False)
     distance: Mapped[float] = mapped_column(Float)
-    purpose: Mapped[Purpose_enum] = mapped_column(Purpose_enum(50), nullable=False)
+    purpose: Mapped[Purpose_enum] = mapped_column(nullable=False)
     date_start: Mapped[datetime] = mapped_column(DateTime)
     date_end: Mapped[datetime] = mapped_column(DateTime)
-    state: Mapped[Reservation_state_enum] = mapped_column(Reservation_state_enum(50),default = Reservation_state_enum.CREATED , nullable=False)
+    state: Mapped[Reservation_state_enum] = mapped_column(default = Reservation_state_enum.CREATED , nullable=False)
 
    
 
@@ -44,10 +44,10 @@ class Reservation(Base):
 
 
 
-    vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicle.id", ondelete="RESTRICT"), nullable=False)
+   # vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicle.id", ondelete="RESTRICT"), nullable=False)
     worker_id: Mapped[int] = mapped_column(ForeignKey("worker.id", ondelete="RESTRICT"), nullable=False)
 
-    vehicle: Mapped["Vehicle"] = relationship(back_populates="reservations")
+    # vehicle: Mapped["Vehicle"] = relationship(back_populates="reservations")
     worker: Mapped["Worker"] = relationship(back_populates="reservations")
 
 class ReservationBase(BaseModel):
@@ -56,7 +56,7 @@ class ReservationBase(BaseModel):
     date_end_planned: datetime
     price: float
     purpose: Purpose_enum 
-    vehicle_id: int
+   # vehicle_id: int
     worker_id: int
 
 class ReservationCreate(ReservationBase):
@@ -75,6 +75,13 @@ class ReservationUpdate(BaseModel):
     state_start: Optional[str] = None
     state_end: Optional[str] = None
 
+    @field_validator("date_start", "date_end")
+    @classmethod
+    def truncate_seconds(cls, value: datetime) -> datetime:
+    
+        if value:
+            return value.replace(second=0, microsecond=0)
+        return value
 class ReservationPublic(ReservationBase):
     """Class with properties to return, includes id from database"""
     id: int
