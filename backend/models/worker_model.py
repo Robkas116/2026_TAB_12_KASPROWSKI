@@ -10,6 +10,7 @@ from database.database import Base
 if TYPE_CHECKING:
     from models.reservation_model import Reservation
 
+
 class Worker(Base):
     """Class representing the Worker table in the database"""
 
@@ -20,6 +21,8 @@ class Worker(Base):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
 
     reservations: Mapped[list["Reservation"]] = relationship(back_populates="worker")
+
+
 # API schemas (Pydantic)
 
 

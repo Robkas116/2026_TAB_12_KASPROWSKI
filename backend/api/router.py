@@ -9,6 +9,7 @@ from api.routes import (
     action_endpoints,
     is_performed_endpoints,
     reservation_endpoints,
+    worker_endpoints,
 )
 
 api_router = APIRouter()
@@ -20,3 +21,4 @@ api_router.include_router(version_endpoints.router)
 api_router.include_router(action_endpoints.router)
 api_router.include_router(is_performed_endpoints.router)
 api_router.include_router(reservation_endpoints.router)
+api_router.include_router(worker_endpoints.router)
