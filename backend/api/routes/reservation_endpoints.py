@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 from crud import reservation_crud
 from database.database import get_db
 from models.reservation_model import (
@@ -10,7 +9,7 @@ from models.reservation_model import (
     ReservationsPublic,
 )
 
-router = APIRouter(prefix="/reservations", tags=["Reservations"])
+router = APIRouter(prefix="/reservation", tags=["Reservations"])
 
 
 @router.post("/", response_model=ReservationPublic, status_code=status.HTTP_201_CREATED)
@@ -30,16 +29,16 @@ def create_reservation(
         HTTPException: If a database integrity constraint fails, such as providing
             non-existent vehicle_id or worker_id (Status 400).
     """
-    try:
-        return reservation_crud.create_reservation(
-            session=db, reservation_in=reservation_in
-        )
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Database integrity error. Ensure the provided vehicle_id and worker_id exist.",
-        )
+    # try:
+    return reservation_crud.create_reservation(
+        session=db, reservation_in=reservation_in
+    )
+    # except IntegrityError:
+    #     db.rollback()
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail="Database integrity error. Ensure the provided vehicle_id and worker_id exist.",
+    #     )
 
 
 @router.get("/", response_model=ReservationsPublic)
@@ -116,7 +115,7 @@ def update_reservation(
     return updated_reservation
 
 
-@router.delete("/{reservation_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{reservation_id}", response_model=dict[str, str])
 def delete_reservation(reservation_id: int, db: Session = Depends(get_db)):
     """Deletes a Reservation by its ID.
 
@@ -125,7 +124,7 @@ def delete_reservation(reservation_id: int, db: Session = Depends(get_db)):
         db: The database session dependency.
 
     Returns:
-        None
+        A dictionary with a success message.
 
     Raises:
         HTTPException: If the reservation with the given ID is not found (Status 404).

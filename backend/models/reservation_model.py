@@ -34,19 +34,19 @@ class Reservation(Base):
     __tablename__ = "reservation"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    date_start_planned: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    date_end_planned: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    date_start_planned: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    date_end_planned: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     price: Mapped[float] = mapped_column(Float, nullable=False)
-    distance: Mapped[float] = mapped_column(Float)
+    distance: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     purpose: Mapped[Purpose_enum] = mapped_column(nullable=False)
-    date_start: Mapped[datetime] = mapped_column(DateTime)
-    date_end: Mapped[datetime] = mapped_column(DateTime)
+    date_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    date_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     state: Mapped[Reservation_state_enum] = mapped_column(
         default=Reservation_state_enum.CREATED, nullable=False
     )
 
-    state_start: Mapped[str] = mapped_column(String(350))
-    state_end: Mapped[str] = mapped_column(String(350))
+    state_start: Mapped[Optional[str]] = mapped_column(String(350), nullable=True)
+    state_end: Mapped[Optional[str]] = mapped_column(String(350), nullable=True)
 
     # vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicle.id", ondelete="RESTRICT"), nullable=False)
     worker_id: Mapped[int] = mapped_column(
@@ -100,12 +100,12 @@ class ReservationPublic(ReservationBase):
     """Class with properties to return, includes id from database"""
 
     id: int
-    distance: float
-    date_start: datetime
-    date_end: datetime
+    distance: Optional[float]
+    date_start: Optional[datetime]
+    date_end: Optional[datetime]
     state: Reservation_state_enum
-    state_start: str
-    state_end: str
+    state_start: Optional[str]
+    state_end: Optional[str]
 
     model_config = ConfigDict(from_attributes=True)
 
