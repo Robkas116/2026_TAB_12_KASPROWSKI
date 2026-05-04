@@ -48,7 +48,6 @@ class ActionPublic(ActionBase):
 
     id: int
     type: ActionType
-    # Translate db object to JSON using attribute names
     model_config = ConfigDict(from_attributes=True)
 
 

@@ -7,9 +7,11 @@ from api.routes import (
     set_of_equipment_endpoints,
     version_endpoints,
     action_endpoints,
+    vehicle_endpoints,
+    worker_endpoints,
+    caretaker_endpoints,
     is_performed_endpoints,
     reservation_endpoints,
-    worker_endpoints,
 )
 
 api_router = APIRouter()
@@ -19,6 +21,8 @@ api_router.include_router(equipment_endpoints.router)
 api_router.include_router(set_of_equipment_endpoints.router)
 api_router.include_router(version_endpoints.router)
 api_router.include_router(action_endpoints.router)
+api_router.include_router(vehicle_endpoints.router)
+api_router.include_router(worker_endpoints.router)
+api_router.include_router(caretaker_endpoints.router)
 api_router.include_router(is_performed_endpoints.router)
 api_router.include_router(reservation_endpoints.router)
-api_router.include_router(worker_endpoints.router)

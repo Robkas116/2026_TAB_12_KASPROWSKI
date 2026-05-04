@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, String, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -5,6 +6,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from models.make_model import Make
 from database.database import Base
+
+if TYPE_CHECKING:
+    from models.vehicle_model import Vehicle
 
 
 class VehModel(Base):
@@ -20,6 +24,7 @@ class VehModel(Base):
     )
 
     make: Mapped["Make"] = relationship(back_populates="models")
+    vehicles: Mapped[list["Vehicle"]] = relationship(back_populates="veh_model")
 
 
 class VehModelBase(BaseModel):
