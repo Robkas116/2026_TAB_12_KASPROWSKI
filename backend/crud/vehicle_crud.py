@@ -1,14 +1,20 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 
-from models.vehicle_model import Vehicle, VehicleCreate, VehicleUpdate, VehiclesPublic, VehiclePublic
+from models.vehicle_model import (
+    Vehicle,
+    VehicleCreate,
+    VehicleUpdate,
+    VehiclesPublic,
+    VehiclePublic,
+)
 
 
 def create_vehicle(*, session: Session, vehicle_in: VehicleCreate) -> VehiclePublic:
     """Creates a new vehicle record in the database.
 
-    The function converts the provided Pydantic model into a SQLAlchemy model, 
-    adds it to the session, commits the transaction, and refreshes the instance 
+    The function converts the provided Pydantic model into a SQLAlchemy model,
+    adds it to the session, commits the transaction, and refreshes the instance
     to get the generated ID.
 
     Args:
@@ -24,7 +30,11 @@ def create_vehicle(*, session: Session, vehicle_in: VehicleCreate) -> VehiclePub
     session.commit()
     session.refresh(db_obj)
     return db_obj
-def get_all_vehicles(*, session: Session, skip: int = 0, limit: int = 100) -> VehiclesPublic:
+
+
+def get_all_vehicles(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> VehiclesPublic:
     """Retrieves all vehicles from the database with optional pagination.
 
     Args:
@@ -40,8 +50,10 @@ def get_all_vehicles(*, session: Session, skip: int = 0, limit: int = 100) -> Ve
 
     total_count = session.scalar(count_statement) or 0
     vehicles = session.scalars(statement.offset(skip).limit(limit)).all()
-    
+
     return VehiclesPublic(data=vehicles, count=total_count)
+
+
 def get_vehicle_by_id(*, session: Session, vehicle_id: int) -> VehiclePublic | None:
     """Finds a vehicle by its ID in the database.
 
@@ -53,7 +65,11 @@ def get_vehicle_by_id(*, session: Session, vehicle_id: int) -> VehiclePublic | N
         VehiclePublic | None: The vehicle object if found, otherwise None.
     """
     return session.get(Vehicle, vehicle_id)
-def update_vehicle(*, session: Session, vehicle_id: int, vehicle_in: VehicleUpdate) -> Vehicle | None:
+
+
+def update_vehicle(
+    *, session: Session, vehicle_id: int, vehicle_in: VehicleUpdate
+) -> VehiclePublic | None:
     """Updates an existing vehicle record in the database.
 
     The function retrieves the existing vehicle by ID, updates its fields with
@@ -63,34 +79,28 @@ def update_vehicle(*, session: Session, vehicle_id: int, vehicle_in: VehicleUpda
     if not db_obj:
         return None
 
-
     update_data = vehicle_in.model_dump(exclude_unset=True)
 
-
     for key, value in update_data.items():
-
         setattr(db_obj, key, value)
-
 
     session.commit()
     session.refresh(db_obj)
     return db_obj
-def delete_vehicle(*, session: Session, vehicle_id: int) -> bool:
+
+
+def delete_vehicle(*, session: Session, db_vehicle: Vehicle) -> None:
     """Deletes a vehicle record from the database.
 
     The function retrieves the vehicle by ID, deletes it from the session, and commits the transaction.
 
     Args:
         session (Session): The database session.
-        vehicle_id (int): The ID of the vehicle to delete.
+        db_vehicle (Vehicle): The vehicle model to delete.
 
     Returns:
-        bool: True if the vehicle was found and deleted, False if not found.
+        None: If the vehicle was found and deleted.
     """
-    db_obj = session.get(Vehicle, vehicle_id)
-    if not db_obj:
-        return False
-
-    session.delete(db_obj)
+    session.delete(db_vehicle)
     session.commit()
-    return True
+    return None
