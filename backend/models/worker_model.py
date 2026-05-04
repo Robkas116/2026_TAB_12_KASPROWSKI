@@ -1,11 +1,14 @@
 from typing import TYPE_CHECKING
+
 from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from pydantic import BaseModel, ConfigDict, Field, EmailStr
 from database.database import Base
 
 if TYPE_CHECKING:
     from models.caretaker_model import Caretaker
+    from models.reservation_model import Reservation
 
 
 class Worker(Base):
@@ -18,6 +21,7 @@ class Worker(Base):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
 
     caretakers: Mapped[list["Caretaker"]] = relationship(back_populates="worker")
+    reservations: Mapped[list["Reservation"]] = relationship(back_populates="worker")
 
 
 class WorkerBase(BaseModel):

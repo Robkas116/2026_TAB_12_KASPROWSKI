@@ -6,7 +6,7 @@ from database.database import Base
 
 if TYPE_CHECKING:
     from models.set_of_equipment_model import SetOfEquipment
-    from models.vehicle_model import Vehicle
+    #from models.vehicle_model import Vehicle
 
 
 class Version(Base):
@@ -27,7 +27,7 @@ class Version(Base):
     destination: Mapped[str] = mapped_column(String(100), nullable=False)
 
     sets: Mapped[List["SetOfEquipment"]] = relationship(back_populates="version")
-    vehicles: Mapped[list["Vehicle"]] = relationship(back_populates="version")
+    # vehicles: Mapped[list["Vehicle"]] = relationship(back_populates="version")
 
 
 class VersionBase(BaseModel):

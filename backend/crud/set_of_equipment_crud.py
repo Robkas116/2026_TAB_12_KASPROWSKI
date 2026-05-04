@@ -8,6 +8,7 @@ from models.set_of_equipment_model import (
     SetOfEquipmentsPublic,
     SetOfEquipmentPublic,
 )
+
 from models.equipment_model import Equipment
 
 
