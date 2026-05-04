@@ -1,7 +1,12 @@
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
-from models.vehmodel_model import VehModel, VehModelCreate, VehModelUpdate, VehModelsPublic
+from models.vehmodel_model import (
+    VehModel,
+    VehModelCreate,
+    VehModelUpdate,
+    VehModelsPublic,
+)
 
 
 def create_vehmodel(*, session: Session, model_in: VehModelCreate) -> VehModel:
@@ -12,11 +17,8 @@ def create_vehmodel(*, session: Session, model_in: VehModelCreate) -> VehModel:
     fields are populated during creation.
     """
 
-    db_obj = VehModel(
-        name=model_in.name,
-        make_id=model_in.make_id
-    )
-    
+    db_obj = VehModel(name=model_in.name, make_id=model_in.make_id)
+
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)

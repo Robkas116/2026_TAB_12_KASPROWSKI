@@ -5,36 +5,39 @@ from pydantic import BaseModel, ConfigDict, Field, EmailStr
 from database.database import Base
 
 if TYPE_CHECKING:
-    # Zmieniony import na Caretaker
     from models.caretaker_model import Caretaker
+
 
 class Worker(Base):
     """Class representing the Worker table."""
+
     __tablename__ = "worker"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
 
-    # Relacja 1:N z Caretaker (Pracownik ma wielu podległych opiekunów/wpisów)
     caretakers: Mapped[list["Caretaker"]] = relationship(back_populates="worker")
 
-# Schematy Pydantic pozostają bez zmian w strukturze,
-# chyba że chcesz w WorkerPublic widzieć listę caretaker_ids
+
 class WorkerBase(BaseModel):
     name: str = Field(max_length=100)
     email: EmailStr = Field(max_length=120)
 
+
 class WorkerCreate(WorkerBase):
     pass
+
 
 class WorkerUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=100)
     email: EmailStr | None = Field(default=None, max_length=120)
 
+
 class WorkerPublic(WorkerBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
 
 class WorkersPublic(BaseModel):
     data: list[WorkerPublic]

@@ -1,14 +1,22 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 
-from models.equipment_model import Equipment, EquipmentCreate, EquipmentUpdate, EquipmentsPublic, EquipmentPublic
+from models.equipment_model import (
+    Equipment,
+    EquipmentCreate,
+    EquipmentUpdate,
+    EquipmentsPublic,
+    EquipmentPublic,
+)
 
 
-def create_equipment(*, session: Session, equipment_in: EquipmentCreate) -> EquipmentPublic:
+def create_equipment(
+    *, session: Session, equipment_in: EquipmentCreate
+) -> EquipmentPublic:
     """Creates a new equipment record in the database.
 
-    The function converts the provided Pydantic model into a SQLAlchemy model, 
-    adds it to the session, commits the transaction, and refreshes the instance 
+    The function converts the provided Pydantic model into a SQLAlchemy model,
+    adds it to the session, commits the transaction, and refreshes the instance
     to get the generated ID.
 
     Args:
@@ -18,16 +26,16 @@ def create_equipment(*, session: Session, equipment_in: EquipmentCreate) -> Equi
     Returns:
         EquipmentPublic: The newly created equipment object.
     """
-    db_obj = Equipment(
-        name=equipment_in.name
-    )
+    db_obj = Equipment(name=equipment_in.name)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
     return db_obj
 
 
-def get_all_equipments(*, session: Session, skip: int = 0, limit: int = 100) -> EquipmentsPublic:
+def get_all_equipments(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> EquipmentsPublic:
     """Retrieves a list of equipment from the database with pagination.
 
     Args:
@@ -42,11 +50,13 @@ def get_all_equipments(*, session: Session, skip: int = 0, limit: int = 100) -> 
 
     statement = select(Equipment).offset(skip).limit(limit)
     equipments = session.scalars(statement).all()
-    
+
     return EquipmentsPublic(data=equipments, count=total_count)
 
 
-def get_equipment_by_id(*, session: Session, equipment_id: int) -> EquipmentPublic | None:
+def get_equipment_by_id(
+    *, session: Session, equipment_id: int
+) -> EquipmentPublic | None:
     """Finds an equipment by its ID in the database.
 
     Args:
@@ -59,7 +69,9 @@ def get_equipment_by_id(*, session: Session, equipment_id: int) -> EquipmentPubl
     return session.get(Equipment, equipment_id)
 
 
-def update_equipment(*, session: Session, db_equipment: Equipment, equipment_in: EquipmentUpdate) -> EquipmentPublic:
+def update_equipment(
+    *, session: Session, db_equipment: Equipment, equipment_in: EquipmentUpdate
+) -> EquipmentPublic:
     """Updates an existing equipment record in the database.
 
     Only the fields that are explicitly set in the equipment_in model will be updated.
@@ -73,10 +85,10 @@ def update_equipment(*, session: Session, db_equipment: Equipment, equipment_in:
         EquipmentPublic: The updated equipment object.
     """
     update_data = equipment_in.model_dump(exclude_unset=True)
-    
+
     for field, value in update_data.items():
         setattr(db_equipment, field, value)
-        
+
     session.add(db_equipment)
     session.commit()
     session.refresh(db_equipment)
@@ -96,5 +108,3 @@ def delete_equipment(*, session: Session, db_equipment: Equipment) -> None:
     session.delete(db_equipment)
     session.commit()
     return None
-
-    

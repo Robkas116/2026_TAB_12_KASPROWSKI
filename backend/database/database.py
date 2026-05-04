@@ -15,8 +15,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
     """
-    Wymusza na SQLite respektowanie kluczy obcych (FOREIGN KEYS).
-    Bez tego SQLite ignoruje błędy relacji.
+    SQLite is forced to use FKs, which is not the default behavior.
+    This function listens for the "connect" event and enables FKs
     """
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")

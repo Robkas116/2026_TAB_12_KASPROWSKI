@@ -6,6 +6,16 @@ from database.database import Base
 equipment_set_association = Table(
     "equipment_set_association",
     Base.metadata,
-    Column("equipment_id", Integer, ForeignKey("equipment.id", ondelete="CASCADE"), primary_key=True),
-    Column("set_of_equipment_id", Integer, ForeignKey("set_of_equipment.id", ondelete="CASCADE"), primary_key=True)
+    Column(
+        "equipment_id",
+        Integer,
+        ForeignKey("equipment.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "set_of_equipment_id",
+        Integer,
+        ForeignKey("set_of_equipment.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )

@@ -104,6 +104,3 @@ def delete_model(model_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT,
             detail="Cannot delete this Model because there are specific Vehicles associated with it.",
         )
-
-        
-    
