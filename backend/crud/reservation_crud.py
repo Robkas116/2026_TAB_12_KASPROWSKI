@@ -1,14 +1,22 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 
-from models.reservation_model import Reservation, ReservationCreate, ReservationUpdate, ReservationPublic, ReservationsPublic
+from models.reservation_model import (
+    Reservation,
+    ReservationCreate,
+    ReservationUpdate,
+    ReservationPublic,
+    ReservationsPublic,
+)
 
 
-def create_reservation(*, session: Session, reservation_in: ReservationCreate) -> ReservationPublic:
+def create_reservation(
+    *, session: Session, reservation_in: ReservationCreate
+) -> ReservationPublic:
     """Creates a new reservation record in the database.
 
-    The function converts the provided Pydantic model into a SQLAlchemy model, 
-    adds it to the session, commits the transaction, and refreshes the instance 
+    The function converts the provided Pydantic model into a SQLAlchemy model,
+    adds it to the session, commits the transaction, and refreshes the instance
     to get the generated ID.
 
     Args:
@@ -24,8 +32,8 @@ def create_reservation(*, session: Session, reservation_in: ReservationCreate) -
         date_end_planned=reservation_in.date_end_planned,
         price=reservation_in.price,
         purpose=reservation_in.purpose,
-       # vehicle_id=reservation_in.vehicle_id,
-        worker_id=reservation_in.worker_id
+        # vehicle_id=reservation_in.vehicle_id,
+        worker_id=reservation_in.worker_id,
     )
 
     session.add(db_obj)
@@ -34,7 +42,9 @@ def create_reservation(*, session: Session, reservation_in: ReservationCreate) -
     return db_obj
 
 
-def get_all_reservations(*, session: Session, skip: int = 0, limit: int = 100) -> ReservationsPublic:
+def get_all_reservations(
+    *, session: Session, skip: int = 0, limit: int = 100
+) -> ReservationsPublic:
     """Retrieves all reservations from the database with optional pagination.
 
     Args:
@@ -50,11 +60,13 @@ def get_all_reservations(*, session: Session, skip: int = 0, limit: int = 100) -
 
     total_count = session.scalar(count_statement) or 0
     reservations = session.scalars(statement.offset(skip).limit(limit)).all()
-    
+
     return ReservationsPublic(data=reservations, count=total_count)
 
 
-def get_reservation_by_id(*, session: Session, reservation_id: int) -> ReservationPublic | None:
+def get_reservation_by_id(
+    *, session: Session, reservation_id: int
+) -> ReservationPublic | None:
     """Finds a reservation by its ID in the database.
 
     Args:
@@ -67,10 +79,12 @@ def get_reservation_by_id(*, session: Session, reservation_id: int) -> Reservati
     return session.get(Reservation, reservation_id)
 
 
-def update_reservation(*, session: Session, reservation_id: int, reservation_in: ReservationUpdate) -> ReservationPublic | None:
+def update_reservation(
+    *, session: Session, reservation_id: int, reservation_in: ReservationUpdate
+) -> ReservationPublic | None:
     """Updates a reservation record in the database.
 
-    The function retrieves the existing reservation by ID, updates its fields with the provided data, 
+    The function retrieves the existing reservation by ID, updates its fields with the provided data,
     commits the transaction, and refreshes the instance to get the updated data.
 
     Args:

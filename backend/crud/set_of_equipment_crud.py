@@ -9,6 +9,8 @@ from models.set_of_equipment_model import (
     SetOfEquipmentPublic,
 )
 
+from models.equipment_model import Equipment
+
 
 def create_set_of_equipment(
     *, session: Session, set_of_equipment_in: SetOfEquipmentCreate
@@ -132,7 +134,7 @@ def delete_set_of_equipment(
 
 
 def add_equipment_to_set(
-    *, session: Session, db_set: SetOfEquipment, db_equipment: "Equipment"
+    *, session: Session, db_set: SetOfEquipment, db_equipment: Equipment
 ) -> SetOfEquipment:
     """Adds an existing equipment to a set of equipment.
 
@@ -153,7 +155,7 @@ def add_equipment_to_set(
 
 
 def remove_equipment_from_set(
-    *, session: Session, db_set: SetOfEquipment, db_equipment: "Equipment"
+    *, session: Session, db_set: SetOfEquipment, db_equipment: Equipment
 ) -> SetOfEquipment:
     """Removes the equipment association from a set of equipment.
 
