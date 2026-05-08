@@ -23,8 +23,6 @@ class WorkerBase(BaseModel):
     """Class with common fields for Worker, used as a base for other schemas"""
 
     name: str = Field(max_length=100)
-    email: EmailStr = Field(max_length=120)
-
 
 class WorkerCreate(WorkerBase):
     """
@@ -32,8 +30,8 @@ class WorkerCreate(WorkerBase):
     it inherits from base with name and email,
     id is generated in the database
     """
-
-    pass
+    email: EmailStr = Field(max_length=120)
+    
 
 
 class WorkerUpdate(BaseModel):
@@ -49,9 +47,23 @@ class WorkerPublic(WorkerBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
+class WorkerPrivate(WorkerPublic):
+    """
+    Class with properties to return to admins or during development.
+    Includes EVERYTHING from WorkerPublic (like ID and name), PLUS email.
+    """
+    email: EmailStr
+
 
 class WorkersPublic(BaseModel):
     """Class for returning a list of workers with a count"""
 
     data: list[WorkerPublic]
     count: int
+
+class WorkersPrivate(BaseModel):
+    """Class for returning a list of workers with a count (Private view)"""
+    data: list[WorkerPrivate]
+    count: int
+
+    
