@@ -18,6 +18,7 @@ def create_is_performed(
         price=is_performed_in.price,
         date=is_performed_in.date,
         state=is_performed_in.state,
+        action_id=is_performed_in.action_id,
     )
     session.add(db_obj)
     session.commit()
