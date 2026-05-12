@@ -1,9 +1,14 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Enum, String, Integer
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pydantic import BaseModel, ConfigDict, Field
 from enum import StrEnum
 from database.database import Base
+
+if TYPE_CHECKING:
+    from models.is_performed_model import IsPerformed
 
 
 class ActionType(StrEnum):
@@ -18,6 +23,9 @@ class Action(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     type: Mapped[ActionType] = mapped_column(Enum(ActionType), nullable=False)
+    
+    # Relationship to IsPerformed
+    is_performeds: Mapped[list["IsPerformed"]] = relationship("IsPerformed", back_populates="action")
 
 
 class ActionBase(BaseModel):

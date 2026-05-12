@@ -1,11 +1,16 @@
 from datetime import date as dt_date
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, Date, Enum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Integer, Date, Enum, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from enum import StrEnum
 from database.database import Base
+
+if TYPE_CHECKING:
+    from models.action_model import Action
+    from models.reservation_model import Reservation
 
 
 class State(StrEnum):
@@ -23,6 +28,13 @@ class IsPerformed(Base):
     price: Mapped[int] = mapped_column(Integer, nullable=False)
     date: Mapped[dt_date] = mapped_column(Date, nullable=False)
     state: Mapped[State] = mapped_column(Enum(State), nullable=False)
+    action_id: Mapped[int] = mapped_column(Integer, ForeignKey("action.id", ondelete="RESTRICT"), nullable=False)
+    reservation_id: Mapped[int] = mapped_column(Integer, ForeignKey("reservation.id", ondelete="RESTRICT"), nullable=False)
+
+    # Relationship to Action
+    action: Mapped["Action"] = relationship("Action", back_populates="is_performeds")
+    # Relationship to Reservation
+    reservation: Mapped["Reservation"] = relationship("Reservation", back_populates="is_performeds")
 
 
 class IsPerformedBase(BaseModel):
@@ -40,7 +52,8 @@ class IsPerformedCreate(IsPerformedBase):
     id is generated in the database
     """
 
-    pass
+    action_id: int = Field(gt=0)
+    reservation_id: int = Field(gt=0)
 
 
 class IsPerformedUpdate(IsPerformedBase):
@@ -49,6 +62,8 @@ class IsPerformedUpdate(IsPerformedBase):
     price: int | None = Field(default=None, ge=0)
     date: dt_date | None = Field(default=None)
     state: State | None = Field(default=None)
+    action_id: int | None = Field(default=None, gt=0)
+    reservation_id: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="before")
     @classmethod
@@ -58,7 +73,7 @@ class IsPerformedUpdate(IsPerformedBase):
 
         null_fields = [
             field
-            for field in ("price", "date", "state")
+            for field in ("price", "date", "state", "action_id", "reservation_id")
             if data.get(field) is None and field in data
         ]
         if null_fields:
@@ -72,6 +87,8 @@ class IsPerformedPublic(IsPerformedBase):
     """Class with properties to return, includes id from database"""
 
     id: int
+    action_id: int
+    reservation_id: int
     # Translate db object to JSON using attribute names
     model_config = ConfigDict(from_attributes=True)
 
