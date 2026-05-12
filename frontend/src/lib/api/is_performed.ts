@@ -7,12 +7,26 @@ import type {
 import { API_URL } from "./config";
 
 export const isPerformedApi = {
-	getAll: async (skip = 0, limit = 100): Promise<IsPerformedsPublic> => {
+	getAll: async (
+		skip = 0,
+		limit = 100,
+	): Promise<{
+		items: IsPerformedPublic[];
+		total: number;
+		skip: number;
+		limit: number;
+	}> => {
 		const response = await fetch(
 			`${API_URL}/is-performed/?skip=${skip}&limit=${limit}`,
 		);
 		if (!response.ok) throw new Error(`IsPerformed GET Error: ${response.status}`);
-		return response.json();
+		const result: IsPerformedsPublic = await response.json();
+		return {
+			items: result.data,
+			total: result.count,
+			skip,
+			limit,
+		};
 	},
 
 	create: async (data: IsPerformedCreate): Promise<IsPerformedPublic> => {
