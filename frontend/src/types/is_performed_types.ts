@@ -13,10 +13,12 @@ export interface IsPerformedBase {
 export interface IsPerformedPublic extends IsPerformedBase {
 	id: number;
 	action_id: number;
+	reservation_id: number;
 }
 
 export interface IsPerformedCreate extends IsPerformedBase {
 	action_id: number;
+	reservation_id: number;
 }
 
 export interface IsPerformedUpdate {
@@ -24,6 +26,7 @@ export interface IsPerformedUpdate {
 	date?: string;
 	state?: State;
 	action_id?: number;
+	reservation_id?: number;
 }
 
 export interface IsPerformedsPublic {

@@ -9,6 +9,10 @@ from database.database import Base
 
 from models.vehicle_model import Vehicle
 from models.worker_model import Worker
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from models.is_performed_model import IsPerformed
 
 
 class Purpose_enum(StrEnum):
@@ -55,6 +59,8 @@ class Reservation(Base):
 
     vehicle: Mapped["Vehicle"] = relationship(back_populates="reservations")
     worker: Mapped["Worker"] = relationship(back_populates="reservations")
+    # Relationship to IsPerformed
+    is_performeds: Mapped[list["IsPerformed"]] = relationship("IsPerformed", back_populates="reservation")
 
 
 class ReservationBase(BaseModel):

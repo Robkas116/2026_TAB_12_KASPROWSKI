@@ -19,6 +19,7 @@ def create_is_performed(
         date=is_performed_in.date,
         state=is_performed_in.state,
         action_id=is_performed_in.action_id,
+        reservation_id=is_performed_in.reservation_id,
     )
     session.add(db_obj)
     session.commit()
