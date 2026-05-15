@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { actionApi } from "@/lib/api/action";
 import { equipmentApi } from "@/lib/api/equipment";
 import { makeApi } from "@/lib/api/make";
+import { vehicleApi } from "@/lib/api/vehicle";
+import { workerApi } from "@/lib/api/worker";
 import { setofequipmentApi } from "@/lib/api/set_of_equipment";
 import { vehmodelApi } from "@/lib/api/vehmodel";
 import { versionApi } from "@/lib/api/version";
@@ -38,6 +40,12 @@ export default function Dashboard() {
                 case "Makes":
                     result = await makeApi.getAll();
                     break;
+                    case "Vehicles":
+                        result = await vehicleApi.getAll();
+                        break;
+                    case "Workers":
+                        result = await workerApi.getAll();
+                        break;
                 case "Models":
                     result = await vehmodelApi.getAll();
                     break;
@@ -77,6 +85,12 @@ export default function Dashboard() {
                 case "Makes":
                     result = await makeApi.update(id, updatedData);
                     break;
+                    case "Vehicles":
+                        result = await vehicleApi.update(id, updatedData);
+                        break;
+                    case "Workers":
+                        result = await workerApi.update(id, updatedData);
+                        break;
                 case "Models":
                     result = await vehmodelApi.update(id, updatedData);
                     break;
@@ -109,6 +123,12 @@ export default function Dashboard() {
             switch (entity) {
                 case "Makes":
                     await makeApi.create(newData);
+                    break;
+                case "Vehicles":
+                    await vehicleApi.create(newData);
+                    break;
+                case "Workers":
+                    await workerApi.create(newData);
                     break;
                 case "Models":
                     await vehmodelApi.create(newData);
@@ -146,6 +166,12 @@ export default function Dashboard() {
                 case "Makes":
                     await makeApi.delete(itemToDelete.id);
                     break;
+                    case "Vehicles":
+                        await vehicleApi.delete(itemToDelete.id);
+                        break;
+                    case "Workers":
+                        await workerApi.delete(itemToDelete.id);
+                        break;
                 case "Models":
                     await vehmodelApi.delete(itemToDelete.id);
                     break;
@@ -210,6 +236,8 @@ export default function Dashboard() {
     const handleAddNewClick = () => {
         switch (activeTab) {
             case "Makes":
+            case "Vehicles":
+            case "Workers":
             case "Models":
             case "Actions":
             case "Equipments":

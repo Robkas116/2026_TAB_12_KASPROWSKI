@@ -23,7 +23,7 @@ export const isPerformedApi = {
 		const result: IsPerformedsPublic = await response.json();
 		return {
 			items: result.data,
-			total: result.count,
+			total: result.total,
 			skip,
 			limit,
 		};
