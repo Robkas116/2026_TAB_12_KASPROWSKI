@@ -31,5 +31,5 @@ export interface IsPerformedUpdate {
 
 export interface IsPerformedsPublic {
 	data: IsPerformedPublic[];
-	total: number;
+	count: number;
 }

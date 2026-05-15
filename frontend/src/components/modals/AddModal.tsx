@@ -36,7 +36,17 @@ export default function AddModal({
 
     const handleSubmit = (e: React.ChangeEvent<HTMLFormElement>) => {
         e.preventDefault();
-        onSuccess(formData);
+        const normalizedData = Object.fromEntries(
+            Object.entries(formData).map(([key, value]) => {
+                if (key.endsWith("_id") && value !== "") {
+                    return [key, Number(value)];
+                }
+
+                return [key, value];
+            }),
+        );
+
+        onSuccess(normalizedData);
     };
 
     return (
@@ -80,12 +90,12 @@ export default function AddModal({
                             </label>
                             <input
                                 id={field}
-                                type="text"
+                                type={field.endsWith("_id") ? "number" : "text"}
                                 name={field}
                                 value={formData[field] || ""}
                                 onChange={handleChange}
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                                required
+                                required={field !== "description"}
                             />
                         </div>
                     ))}
