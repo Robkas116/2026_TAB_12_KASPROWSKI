@@ -13,6 +13,8 @@ export interface VehicleCreate extends VehicleBase {}
 export type VehicleUpdate = Partial<VehicleBase>;
 
 export interface VehiclesPublic {
-	data: VehiclePublic[];
-	count: number;
+	items: VehiclePublic[];
+	total: number;
+	skip: number;
+	limit: number;
 }

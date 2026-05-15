@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { OPTIONAL_FIELDS } from "@/lib/forms";
+import type { EntityType } from "@/types";
 
 interface AddModalProps {
     isOpen: boolean;
@@ -26,6 +28,7 @@ export default function AddModal({
     if (!isOpen || !initialState) return null;
 
     const fields = Object.keys(initialState);
+    const optionalFieldsForEntity = OPTIONAL_FIELDS[entityType as EntityType] || new Set();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({
@@ -80,25 +83,29 @@ export default function AddModal({
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {fields.map((field) => (
-                        <div key={field}>
-                            <label
-                                htmlFor={field}
-                                className="block text-sm font-medium text-gray-700 capitalize mb-1"
-                            >
-                                {field.replace("_", " ")}
-                            </label>
-                            <input
-                                id={field}
-                                type={field.endsWith("_id") ? "number" : "text"}
-                                name={field}
-                                value={formData[field] || ""}
-                                onChange={handleChange}
-                                className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                                required={field !== "description"}
-                            />
-                        </div>
-                    ))}
+                    {fields.map((field) => {
+                        const isOptional = optionalFieldsForEntity.has(field);
+                        return (
+                            <div key={field}>
+                                <label
+                                    htmlFor={field}
+                                    className="block text-sm font-medium text-gray-700 capitalize mb-1"
+                                >
+                                    {field.replace("_", " ")}
+                                    {isOptional && <span className="text-gray-400 text-xs ml-1">(optional)</span>}
+                                </label>
+                                <input
+                                    id={field}
+                                    type={field.endsWith("_id") ? "number" : "text"}
+                                    name={field}
+                                    value={formData[field] || ""}
+                                    onChange={handleChange}
+                                    className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                    required={!isOptional}
+                                />
+                            </div>
+                        );
+                    })}
 
                     <div className="flex justify-end gap-3 pt-4 border-t mt-6">
                         <button

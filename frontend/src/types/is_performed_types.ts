@@ -30,6 +30,8 @@ export interface IsPerformedUpdate {
 }
 
 export interface IsPerformedsPublic {
-	data: IsPerformedPublic[];
-	count: number;
+	items: IsPerformedPublic[];
+	total: number;
+	skip: number;
+	limit: number;
 }

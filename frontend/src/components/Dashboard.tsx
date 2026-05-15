@@ -292,11 +292,7 @@ export default function Dashboard() {
                 {!loading && !error && data && (
                     <div className="space-y-4">
                         {/* Showing results */}
-                        {data.total !== undefined && (
-                            <p className="text-sm text-gray-500 font-medium">
-                                Total records: {data.total}
-                            </p>
-                        )}
+                       
                         <DataTable
                             items={Array.isArray(data) ? data : data.items || data.data || []}
                             onEdit={handleEditClick}
