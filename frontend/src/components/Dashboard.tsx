@@ -234,20 +234,23 @@ export default function Dashboard() {
     };
 
     const handleAddNewClick = () => {
-        switch (activeTab) {
-            case "Makes":
-            case "Vehicles":
-            case "Workers":
-            case "Models":
-            case "Actions":
-            case "Equipments":
-            case "SetOfEquipments":
-            case "Versions":
-                setIsAddModalOpen(true);
-                break;
-            default:
-                alert(`Adding new ${activeTab.slice(0, -1)} is not implemented yet.`);
+        const addableTabs: EntityType[] = [
+            "Makes",
+            "Vehicles",
+            "Workers",
+            "Models",
+            "Actions",
+            "Equipments",
+            "SetOfEquipments",
+            "Versions",
+        ];
+
+        if (addableTabs.includes(activeTab)) {
+            setIsAddModalOpen(true);
+            return;
         }
+
+        alert(`Adding new ${activeTab.slice(0, -1)} is not implemented yet.`);
     };
 
     return (
@@ -303,11 +306,7 @@ export default function Dashboard() {
                 {!loading && !error && data && (
                     <div className="space-y-4">
                         {/* Showing results */}
-                        {data.total !== undefined && (
-                            <p className="text-sm text-gray-500 font-medium">
-                                Total records: {data.total}
-                            </p>
-                        )}
+                       
                         <DataTable
                             items={Array.isArray(data) ? data : data.items || data.data || []}
                             onEdit={handleEditClick}

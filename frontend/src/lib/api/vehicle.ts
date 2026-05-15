@@ -35,7 +35,14 @@ export const vehicleApi = {
 			`${API_URL}/vehicle/?skip=${skip}&limit=${limit}`,
 		);
 		if (!response.ok) throw new Error(`Vehicle GET Error: ${response.status}`);
-		return response.json();
+		const result = await response.json();
+		// Map backend response (data, count) to frontend format (items, total)
+		return {
+			items: result.data,
+			total: result.count,
+			skip,
+			limit,
+		};
 	},
 
 	create: async (data: VehicleCreate): Promise<VehiclePublic> => {
