@@ -10,20 +10,15 @@ export const isPerformedApi = {
 	getAll: async (
 		skip = 0,
 		limit = 100,
-	): Promise<{
-		items: IsPerformedPublic[];
-		total: number;
-		skip: number;
-		limit: number;
-	}> => {
+	): Promise<IsPerformedsPublic> => {
 		const response = await fetch(
 			`${API_URL}/is-performed/?skip=${skip}&limit=${limit}`,
 		);
 		if (!response.ok) throw new Error(`IsPerformed GET Error: ${response.status}`);
-		const result: IsPerformedsPublic = await response.json();
+		const result: { data: IsPerformedPublic[]; count: number } = await response.json();
 		return {
 			items: result.data,
-			total: result.total,
+			total: result.count,
 			skip,
 			limit,
 		};
