@@ -9,6 +9,7 @@ import { workerApi } from "@/lib/api/worker";
 import { setofequipmentApi } from "@/lib/api/set_of_equipment";
 import { vehmodelApi } from "@/lib/api/vehmodel";
 import { versionApi } from "@/lib/api/version";
+import { reservationApi } from '@/lib/api/reservation';
 import { INITIAL_STATES } from "@/lib/forms";
 import type { EntityType } from "@/types";
 import DataTable from "./DataTable";
@@ -61,6 +62,10 @@ export default function Dashboard() {
                 case "Versions":
                     result = await versionApi.getAll();
                     break;
+                case "Reservations":
+                    result = await reservationApi.getAll();
+                    break;
+                
                 default:
                     result = { message: `Data for ${entity} not implemented yet.` };
             }
@@ -106,6 +111,9 @@ export default function Dashboard() {
                 case "Versions":
                     result = await versionApi.update(id, updatedData);
                     break;
+                case "Reservations":
+                    result = await reservationApi.update(id, updatedData);
+                    break;
                 default:
                     alert(`Updating ${entity} is not implemented yet.`);
                     return;
@@ -144,6 +152,9 @@ export default function Dashboard() {
                     break;
                 case "Versions":
                     await versionApi.create(newData);
+                    break;
+                case "Reservations":
+                    await reservationApi.create(newData);
                     break;
                 default:
                     alert(`Adding ${entity} is not implemented yet.`);
@@ -186,6 +197,9 @@ export default function Dashboard() {
                     break;
                 case "Versions":
                     await versionApi.delete(itemToDelete.id);
+                    break;
+                case "Reservations":
+                    await reservationApi.delete(itemToDelete.id);
                     break;
                 default:
                     alert(`Deleting ${activeTab} is not implemented yet.`);
@@ -243,6 +257,7 @@ export default function Dashboard() {
             "Equipments",
             "SetOfEquipments",
             "Versions",
+            "Reservations",
         ];
 
         if (addableTabs.includes(activeTab)) {
