@@ -10,6 +10,7 @@ import { setofequipmentApi } from "@/lib/api/set_of_equipment";
 import { vehmodelApi } from "@/lib/api/vehmodel";
 import { versionApi } from "@/lib/api/version";
 import { reservationApi } from '@/lib/api/reservation';
+import { caretakerApi } from '@/lib/api/caretaker';
 import { INITIAL_STATES } from "@/lib/forms";
 import type { EntityType } from "@/types";
 import DataTable from "./DataTable";
@@ -65,7 +66,9 @@ export default function Dashboard() {
                 case "Reservations":
                     result = await reservationApi.getAll();
                     break;
-                
+                case "Caretakers":
+                    result = await caretakerApi.getAll();
+                    break;
                 default:
                     result = { message: `Data for ${entity} not implemented yet.` };
             }
@@ -114,6 +117,9 @@ export default function Dashboard() {
                 case "Reservations":
                     result = await reservationApi.update(id, updatedData);
                     break;
+                case "Caretakers":
+                    result = await caretakerApi.update(id, updatedData);
+                    break;
                 default:
                     alert(`Updating ${entity} is not implemented yet.`);
                     return;
@@ -155,6 +161,9 @@ export default function Dashboard() {
                     break;
                 case "Reservations":
                     await reservationApi.create(newData);
+                    break;
+                case "Caretakers":
+                    await caretakerApi.create(newData);
                     break;
                 default:
                     alert(`Adding ${entity} is not implemented yet.`);
@@ -201,6 +210,9 @@ export default function Dashboard() {
                 case "Reservations":
                     await reservationApi.delete(itemToDelete.id);
                     break;
+                case "Caretakers":
+                    await caretakerApi.delete(itemToDelete.id);
+                    break;
                 default:
                     alert(`Deleting ${activeTab} is not implemented yet.`);
                     setIsDeleting(false);
@@ -233,6 +245,7 @@ export default function Dashboard() {
         "Equipments",
         "SetOfEquipments",
         "Versions",
+        "Caretakers",
     ];
 
     const handleEditClick = (item: any) => {
@@ -258,6 +271,7 @@ export default function Dashboard() {
             "SetOfEquipments",
             "Versions",
             "Reservations",
+            "Caretakers",
         ];
 
         if (addableTabs.includes(activeTab)) {

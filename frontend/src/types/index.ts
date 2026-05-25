@@ -7,4 +7,6 @@
 | "Models"
 | "Equipments"
 | "SetOfEquipments"
-| "Versions";
+| "Versions"
+| "Caretakers"
+;
