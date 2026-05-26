@@ -1,6 +1,7 @@
 export interface WorkerBase {
 	name: string;
 	email: string;
+	is_superuser: boolean;
 }
 
 export interface WorkerPublic extends WorkerBase {
