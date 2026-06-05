@@ -15,7 +15,9 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const success = searchParams.get("registered")
     ? "Konto zostało utworzone! Możesz się teraz zalogować."
-    : "";
+    : searchParams.get("reset")
+      ? "Hasło zostało zresetowane. Możesz się teraz zalogować."
+      : "";
 
   const validate = () => {
     const errors: { email?: string; password?: string } = {};
@@ -55,7 +57,7 @@ function LoginContent() {
         className="fixed inset-0 pointer-events-none"
         aria-hidden="true"
       >
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[40rem] h-[40rem] rounded-full opacity-10 blur-[120px]"
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-160 h-160 rounded-full opacity-10 blur-[120px]"
           style={{ background: "radial-gradient(circle, var(--color-accent) 0%, transparent 70%)" }}
         />
       </div>
@@ -155,6 +157,12 @@ function LoginContent() {
             Nie masz konta?{" "}
             <Link href="/register" className="font-medium hover:underline" style={{ color: "var(--color-accent-soft)" }}>
               Zarejestruj się
+            </Link>
+          </p>
+
+          <p className="text-center text-sm" style={{ color: "var(--color-text-secondary)" }}>
+            <Link href="/forgot-password" className="font-medium hover:underline" style={{ color: "var(--color-accent-soft)" }}>
+              Zapomniałem hasła
             </Link>
           </p>
         </form>

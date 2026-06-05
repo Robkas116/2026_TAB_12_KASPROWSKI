@@ -1,6 +1,11 @@
 import { WorkerPublic } from "@/types/worker_types";
 import { VehiclesPublic } from "@/types/vehicle_types";
 import { ReservationCreate, ReservationPublic } from "@/types/reservation_types";
+import {
+  PasswordResetConfirm,
+  PasswordResetRequest,
+  PasswordResetRequestResponse,
+} from "@/types/password_reset_types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -111,8 +116,29 @@ class ApiService {
     });
   }
 
+  async requestPasswordReset(email: string): Promise<PasswordResetRequestResponse> {
+	return this.request<PasswordResetRequestResponse>("/api/v1/login/forgot-password/request", {
+	  method: "POST",
+	  body: JSON.stringify({ email: normalizeEmail(email) } satisfies PasswordResetRequest),
+	});
+  }
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+	return this.request<{ message: string }>("/api/v1/login/forgot-password/reset", {
+	  method: "POST",
+	  body: JSON.stringify({ token, password } satisfies PasswordResetConfirm),
+	});
+  }
+
   async getCurrentUser(): Promise<WorkerPublic> {
     return this.request<WorkerPublic>("/api/v1/login/users/me");
+  }
+
+  async changePassword(oldPassword: string, newPassword: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>("/api/v1/worker/change-password", {
+      method: "POST",
+      body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+    });
   }
 
   async getVehicles(): Promise<VehiclesPublic> {

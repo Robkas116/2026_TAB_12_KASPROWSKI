@@ -5,6 +5,9 @@ from sqlalchemy.exc import IntegrityError
 from crud import worker_crud
 from database.database import get_db
 from models.worker_model import WorkerCreate, WorkerPublic, WorkerUpdate, WorkersPublic
+from models.worker_model import PasswordChange
+from api import deps
+from core import security
 
 router = APIRouter(prefix="/worker", tags=["Workers"])
 
@@ -58,6 +61,20 @@ def update_worker(
     return worker_crud.update_worker(
         session=db, db_worker=db_worker, worker_in=worker_in
     )
+
+
+@router.post('/change-password')
+def change_password(
+    payload: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: Worker = Depends(deps.get_current_user),
+):
+    # Verify old password
+    if not security.verify_password(payload.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail='Incorrect current password')
+
+    worker_crud.update_password(session=db, db_worker=current_user, new_password=payload.new_password)
+    return {"message": "Hasło zostało zmienione"}
 
 
 @router.delete("/{worker_id}", response_model=dict[str, str])

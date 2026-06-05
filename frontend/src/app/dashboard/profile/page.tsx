@@ -8,6 +8,12 @@ import { WorkerPublic } from "@/types/worker_types";
 export default function ProfilePage() {
   const [user, setUser] = useState<WorkerPublic | null>(null);
   const [loading, setLoading] = useState(true);
+  const [changing, setChanging] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [changeError, setChangeError] = useState("");
+  const [changeSuccess, setChangeSuccess] = useState("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -22,6 +28,32 @@ export default function ProfilePage() {
     };
     fetchUser();
   }, []);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangeError("");
+    setChangeSuccess("");
+    if (newPassword.length < 6) {
+      setChangeError("Hasło musi mieć co najmniej 6 znaków.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setChangeError("Hasła nie są takie same.");
+      return;
+    }
+    setChanging(true);
+    try {
+      await api.changePassword(oldPassword, newPassword);
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setChangeSuccess("Hasło zostało zmienione.");
+    } catch (err: unknown) {
+      setChangeError(err instanceof Error ? err.message : "Błąd zmiany hasła.");
+    } finally {
+      setChanging(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -108,6 +140,53 @@ export default function ProfilePage() {
                 >
                   {user?.is_superuser ? "Administrator" : "Pracownik"}
                 </span>
+              </dd>
+            </div>
+            <div className="px-6 py-4 sm:grid sm:grid-cols-3 sm:gap-4">
+              <dt className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+                Zmień hasło
+              </dt>
+              <dd className="mt-1 sm:mt-0 sm:col-span-2">
+                <form onSubmit={handleChangePassword} className="space-y-3">
+                  <div>
+                    <input
+                      type="password"
+                      placeholder="Aktualne hasło"
+                      className="input-dark w-full"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="password"
+                      placeholder="Nowe hasło"
+                      className="input-dark w-full"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="password"
+                      placeholder="Powtórz nowe hasło"
+                      className="input-dark w-full"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    />
+                  </div>
+                  {changeError && <p className="field-error">{changeError}</p>}
+                  {changeSuccess && (
+                    <p className="text-sm" style={{ color: "var(--color-success)" }}>
+                      {changeSuccess}
+                    </p>
+                  )}
+                  <div>
+                    <button type="submit" disabled={changing} className="btn-primary">
+                      {changing ? "Zmiana..." : "Zmień hasło"}
+                    </button>
+                  </div>
+                </form>
               </dd>
             </div>
           </dl>

@@ -43,6 +43,25 @@ class WorkerUpdate(BaseModel):
     is_superuser: bool | None = None
 
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetRequestResponse(BaseModel):
+    message: str
+    reset_link: str | None = None
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    password: str = Field(min_length=6)
+
+
+class PasswordChange(BaseModel):
+    old_password: str = Field(min_length=6)
+    new_password: str = Field(min_length=6)
+
+
 class WorkerPublic(WorkerBase):
     id: int
     model_config = ConfigDict(from_attributes=True)

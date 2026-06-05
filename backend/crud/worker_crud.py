@@ -83,6 +83,14 @@ def update_worker(
     return db_worker
 
 
+def update_password(*, session: Session, db_worker: Worker, new_password: str) -> Worker:
+    db_worker.hashed_password = get_password_hash(new_password)
+    session.add(db_worker)
+    session.commit()
+    session.refresh(db_worker)
+    return db_worker
+
+
 def delete_worker(*, session: Session, db_worker: Worker) -> None:
     """
     Deleting a worker from the database.
