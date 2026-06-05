@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import { api, subscribeToAuthChanges } from "@/lib/api";
 import { WorkerPublic } from "@/types/worker_types";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -71,9 +72,21 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen surface-base">
+    <div className="min-h-screen surface-base relative overflow-hidden">
+      {/* Cinematic Background Implementation (Global) */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <Image
+          src="/assets/bg/hero-road.jpg"
+          alt="Background"
+          fill
+          className="object-cover opacity-15 scale-105"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-[#0a0b0e]" />
+      </div>
+
       {/* Animated background grain */}
-      <div className="fixed inset-0 pointer-events-none opacity-[0.03]" aria-hidden="true"
+      <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.03]" aria-hidden="true"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
           backgroundSize: "256px 256px",

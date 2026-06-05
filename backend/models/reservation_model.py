@@ -85,6 +85,9 @@ class ReservationCreate(ReservationBase):
 class ReservationUpdate(BaseModel):
     """Class with all fields optional for update operations"""
 
+    date_start_planned: Optional[datetime] = None
+    date_end_planned: Optional[datetime] = None
+    purpose: Optional[Purpose_enum] = None
     date_start: Optional[datetime] = None
     date_end: Optional[datetime] = None
     price: Optional[float] = None
@@ -93,10 +96,9 @@ class ReservationUpdate(BaseModel):
     state_start: Optional[str] = None
     state_end: Optional[str] = None
 
-    @field_validator("date_start", "date_end")
+    @field_validator("date_start", "date_end", "date_start_planned", "date_end_planned")
     @classmethod
     def truncate_seconds(cls, value: datetime) -> datetime:
-
         if value:
             return value.replace(second=0, microsecond=0)
         return value

@@ -74,6 +74,7 @@ export default function VehiclesPage() {
   const [panelVehicle, setPanelVehicle] = useState<EnrichedVehicle | null>(null);
   const [reserveStart, setReserveStart] = useState("");
   const [reserveEnd, setReserveEnd] = useState("");
+  const [reservePrice, setReservePrice] = useState("");
   const [reserving, setReserving] = useState(false);
   const [existingReservations, setExistingReservations] = useState<ReservationPublic[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -140,6 +141,7 @@ export default function VehiclesPage() {
     setPanelVehicle(ev);
     setReserveStart("");
     setReserveEnd("");
+    setReservePrice("");
     setFieldErrors({});
     setSelectedStart(null);
     setSelectedEnd(null);
@@ -259,7 +261,7 @@ export default function VehiclesPage() {
         date_start_planned: new Date(reserveStart).toISOString(),
         date_end_planned: new Date(reserveEnd).toISOString(),
         purpose: "business",
-        price: 0,
+        price: parseFloat(reservePrice) || 0,
       });
       toast("success", "Rezerwacja została utworzona!");
       closePanel();
@@ -339,35 +341,34 @@ export default function VehiclesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1
-            className="text-2xl sm:text-3xl font-bold tracking-tight"
-            style={{
-              background: "linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-accent-soft) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            Flota pojazdów
+    <div className="space-y-10 relative z-10 py-4">
+      {/* Unified Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400/80">
+            <Link href="/dashboard" className="hover:text-purple-300 transition-colors">System</Link>
+            <span className="w-1 h-1 rounded-full bg-white/20" />
+            <span className="text-white/40">Katalog Floty</span>
+          </nav>
+          <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter">
+            Flota <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">Pojazdów</span>
           </h1>
-          <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-            Przeglądaj dostępne samochody i rezerwuj
+          <p className="text-gray-400 text-sm max-w-md font-medium leading-relaxed">
+            Przeglądaj wszystkie dostępne samochody, sprawdź ich opiekunów i dokonaj rezerwacji w systemie.
           </p>
         </div>
         <Link
           href="/dashboard"
-          className="text-sm font-medium hover:underline inline-flex items-center gap-1 shrink-0"
-          style={{ color: "var(--color-accent-soft)" }}
+          className="btn-ghost px-6 py-3 border-white/5 text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-2"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           Powrót do menu
         </Link>
       </div>
+
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
       {/* Loading */}
       {loading && (
@@ -395,7 +396,7 @@ export default function VehiclesPage() {
             </div>
             <p className="font-medium" style={{ color: "var(--color-error)" }}>Błąd ładowania</p>
             <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{error}</p>
-            <button type="button" onClick={fetchData} className="btn-ghost mt-2">Spróbuj ponownie</button>
+            <button type="button" onClick={fetchData} className="btn-ghost mt-2 px-8 border-white/5">Spróbuj ponownie</button>
           </div>
         </div>
       )}
@@ -417,58 +418,62 @@ export default function VehiclesPage() {
 
       {/* Vehicle Cards Grid */}
       {!loading && !error && vehicles.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {vehicles.map((ev, index) => (
             <button
               key={ev.vehicle.id}
               type="button"
               onClick={() => openPanel(ev)}
-              className="glass-surface rounded-2xl overflow-hidden text-left group transition-all duration-300 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-              style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }}
+              className="glass-elevated rounded-3xl overflow-hidden text-left group transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] border-white/5 hover:border-purple-500/30"
             >
-              {/* Car image placeholder */}
-              <div
-                className={`h-40 bg-gradient-to-br ${carGradient(index)} relative flex items-center justify-center overflow-hidden`}
-              >
-                <svg className="h-20 w-28 opacity-30 group-hover:opacity-40 transition-opacity" viewBox="0 0 112 80" fill="none">
-                  <rect x="8" y="24" width="96" height="28" rx="6" fill="white" />
-                  <path d="M30 24V16C30 12 34 8 40 8H72C78 8 82 12 82 16V24" fill="white" />
-                  <rect x="60" y="14" width="30" height="14" rx="4" fill="white" opacity="0.6" />
-                  <circle cx="32" cy="56" r="10" fill="white" />
-                  <circle cx="80" cy="56" r="10" fill="white" />
-                  <circle cx="32" cy="56" r="5" fill="rgba(0,0,0,0.3)" />
-                  <circle cx="80" cy="56" r="5" fill="rgba(0,0,0,0.3)" />
-                  <rect x="4" y="50" width="14" height="6" rx="2" fill="white" opacity="0.4" />
-                  <rect x="94" y="50" width="14" height="6" rx="2" fill="white" opacity="0.4" />
+              {/* Top: Placeholder Silhouette */}
+              <div className="relative h-44 flex items-center justify-center bg-black/40 overflow-hidden border-b border-white/5">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.1)_0%,transparent_70%)]" />
+                <svg className="w-24 h-24 text-white/10 group-hover:text-purple-500/20 transition-colors duration-500" viewBox="0 0 24 24" fill="currentColor">
+                   <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
                 </svg>
+                
+                <div className="absolute top-4 left-4">
+                   <span className="px-3 py-1 bg-white/5 backdrop-blur-md rounded-lg border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/40">
+                     S/N: {ev.vehicle.id.toString().padStart(4, '0')}
+                   </span>
+                </div>
               </div>
 
               {/* Info */}
-              <div className="p-4">
-                <h3 className="font-bold text-base truncate" style={{ color: "var(--color-text-primary)" }}>
-                  {ev.makeName}
-                </h3>
-                <p className="text-sm mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                  {ev.modelName}
-                </p>
-                {ev.vehicle.description && (
-                  <p className="text-xs mt-1.5 truncate" style={{ color: "var(--color-text-muted)" }}>
-                    {ev.vehicle.description}
+              <div className="p-6 space-y-4">
+                <div>
+                  <h3 className="text-xl font-black text-white group-hover:text-purple-400 transition-colors tracking-tight">
+                    {ev.makeName}
+                  </h3>
+                  <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">
+                    {ev.modelName}
                   </p>
-                )}
-                <div className="flex items-center gap-2 mt-3">
+                </div>
+
+                <div className="flex items-center gap-2">
                   {ev.caretaker ? (
-                    <span className="badge" style={{ background: "var(--color-success-soft)", color: "var(--color-success)" }}>
+                    <span className="badge px-3 py-1 text-[9px] font-black uppercase tracking-widest" style={{ background: "rgba(52, 211, 153, 0.1)", color: "#34d399", border: "1px solid rgba(52, 211, 153, 0.2)" }}>
                       Dostępny
                     </span>
                   ) : (
-                    <span className="badge" style={{ background: "var(--color-warning-soft)", color: "var(--color-warning)" }}>
+                    <span className="badge px-3 py-1 text-[9px] font-black uppercase tracking-widest" style={{ background: "rgba(251, 191, 36, 0.1)", color: "#fbbf24", border: "1px solid rgba(251, 191, 36, 0.2)" }}>
                       Bez opiekuna
                     </span>
                   )}
-                  <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                    {ev.equipment?.equipments?.length ? `${ev.equipment.equipments.length} elem.` : ""}
-                  </span>
+                </div>
+
+                <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Opiekun</span>
+                    <span className="text-xs font-bold text-gray-300">{ev.caretaker?.worker?.name || "Brak"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-purple-400 group-hover:text-white transition-all">
+                    <span>Rezerwuj</span>
+                    <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </button>
@@ -476,234 +481,152 @@ export default function VehiclesPage() {
         </div>
       )}
 
-      {/* ── Right-side slide-in panel ── */}
+      {/* --- SIDE PANEL --- */}
       {panelVehicle && (
-        <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Szczegóły pojazdu">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 modal-backdrop"
-            style={{ background: "rgba(0,0,0,0.7)" }}
-            onClick={closePanel}
-            aria-hidden="true"
-          />
-
-          {/* Panel */}
-          <div
-            className="relative z-10 w-full md:w-[44rem] h-full overflow-y-auto shadow-2xl animate-slide-in"
-            style={{
-              background: "var(--color-surface)",
-              borderLeft: "1px solid var(--color-border)",
-            }}
-          >
+        <div className="fixed inset-0 z-[100] flex justify-end" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={closePanel} />
+          
+          <div className="relative z-10 w-full md:w-[38rem] h-full bg-[#0d0f14] shadow-[-20px_0_60px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col border-l border-white/5">
             {/* Header */}
-            <div
-              className="sticky top-0 z-10 flex justify-between items-start p-6 border-b"
-              style={{
-                background: "var(--color-surface)",
-                borderColor: "var(--color-border)",
-              }}
-            >
-              <div>
-                <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: "var(--color-accent-soft)" }}>
-                  {panelVehicle.makeName}
-                </p>
-                <h2 className="text-xl font-bold mt-0.5" style={{ color: "var(--color-text-primary)" }}>
-                  {panelVehicle.modelName}
+            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-purple-400">
+                   <span>Specyfikacja Pojazdu</span>
+                   <span className="w-1 h-1 rounded-full bg-white/20" />
+                   <span className="text-white/40">#{panelVehicle.vehicle.id}</span>
+                </div>
+                <h2 className="text-2xl font-black text-white">
+                  {panelVehicle.makeName} {panelVehicle.modelName}
                 </h2>
-                {panelVehicle.vehicle.description && (
-                  <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-                    {panelVehicle.vehicle.description}
-                  </p>
-                )}
               </div>
-              <button
-                onClick={closePanel}
-                className="p-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ color: "var(--color-text-muted)" }}
-                aria-label="Zamknij panel"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <button onClick={closePanel} className="p-3 rounded-2xl hover:bg-white/5 transition-colors text-white/40 hover:text-white">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Caretaker */}
-              <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-muted)" }}>
-                  Opiekun pojazdu
-                </h3>
-                {panelVehicle.caretaker ? (
-                  <div
-                    className="rounded-xl p-4 flex items-center gap-3"
-                    style={{ background: "var(--color-elevated)", border: "1px solid var(--color-border)" }}
-                  >
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold shrink-0"
-                      style={{ background: "var(--color-accent-glow)", color: "var(--color-accent-soft)" }}
-                    >
-                      {panelVehicle.caretaker.worker?.name?.charAt(0).toUpperCase() || "?"}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm" style={{ color: "var(--color-text-primary)" }}>
-                        {panelVehicle.caretaker.worker?.name || "Nieznany"}
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-                        Od {new Date(panelVehicle.caretaker.caretaker.date_start).toLocaleDateString("pl-PL")}
-                        {panelVehicle.caretaker.caretaker.date_end &&
-                          ` – do ${new Date(panelVehicle.caretaker.caretaker.date_end).toLocaleDateString("pl-PL")}`}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl p-4 text-center" style={{ background: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
-                    <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Brak przypisanego opiekuna</p>
-                  </div>
-                )}
-              </section>
+            {/* Content */}
+            <div className="p-8 flex-1 overflow-y-auto custom-scrollbar space-y-10">
+              <div className="relative h-48 bg-white/5 rounded-3xl flex items-center justify-center border border-white/5 overflow-hidden group/panel-car">
+                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.1)_0%,transparent_70%)]" />
+                 <svg className="w-24 h-24 text-white/10 group-hover/panel-car:text-purple-500/20 transition-colors duration-500" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
+                 </svg>
+              </div>
 
-              {/* Equipment */}
-              <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-muted)" }}>
-                  Wyposażenie
-                </h3>
-                {panelVehicle.equipment && panelVehicle.equipment.equipments?.length > 0 ? (
-                  <div className="rounded-xl p-4" style={{ background: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
-                    <p className="text-sm font-medium mb-2" style={{ color: "var(--color-text-primary)" }}>
-                      {panelVehicle.equipment.name}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Lokalizacja</label>
+                   <div className="bg-white/5 rounded-2xl p-4 text-sm font-bold text-white/80 border border-white/5">
+                      Polska, Centrala
+                   </div>
+                </div>
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Status Floty</label>
+                   <div className="bg-emerald-500/10 rounded-2xl p-4 text-sm font-bold text-emerald-400 border border-emerald-500/20">
+                      Operacyjny
+                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Wyposażenie i Pakiety</label>
+                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
+                    <h4 className="font-bold text-white mb-2">{panelVehicle.equipment?.name || "Zestaw Standardowy"}</h4>
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      Pojazd wyposażony w standardowe systemy bezpieczeństwa, klimatyzację oraz pakiet multimedialny.
                     </p>
-                    <ul className="space-y-1.5">
-                      {panelVehicle.equipment.equipments.map((eq) => (
-                        <li key={eq.id} className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                          <svg className="h-4 w-4 shrink-0" style={{ color: "var(--color-accent-soft)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          {eq.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <div className="rounded-xl p-4 text-center" style={{ background: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
-                    <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>Brak danych o wyposażeniu</p>
-                  </div>
-                )}
-              </section>
+                 </div>
+              </div>
 
-              {/* Calendar + Reservation */}
-              <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-muted)" }}>
-                  Kalendarz rezerwacji
-                </h3>
-
-                <div
-                  className="rounded-xl p-4"
-                  style={{
-                    background: "var(--color-elevated)",
-                    border: "1px solid var(--color-accent-glow)",
-                  }}
-                >
-                  {/* Month navigation */}
-                  <div className="flex items-center justify-between mb-3">
-                    <button type="button" onClick={prevMonth} className="p-1 rounded hover:bg-white/5 transition-colors" style={{ color: "var(--color-text-muted)" }}>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                      {MONTHS_PL[calendarMonth.month]} {calendarMonth.year}
-                    </span>
-                    <button type="button" onClick={nextMonth} className="p-1 rounded hover:bg-white/5 transition-colors" style={{ color: "var(--color-text-muted)" }}>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Day headers */}
-                  <div className="grid grid-cols-7 gap-1 mb-1">
-                    {DAYS_PL.map((d) => (
-                      <div key={d} className="text-center text-[10px] font-medium" style={{ color: "var(--color-text-muted)" }}>
-                        {d}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Day grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {renderCalendar()}
-                  </div>
-
-                  {/* Legend */}
-                  <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs" style={{ borderColor: "var(--color-border)" }}>
-                    <span className="flex items-center gap-1.5" style={{ color: "var(--color-text-muted)" }}>
-                      <span className="w-3 h-3 rounded" style={{ background: "var(--color-error-soft)", border: "1px solid rgba(248,113,113,0.3)" }} />
-                      Zajęte
-                    </span>
-                    <span className="flex items-center gap-1.5" style={{ color: "var(--color-text-muted)" }}>
-                      <span className="w-3 h-3 rounded" style={{ background: "var(--color-accent)" }} />
-                      Wybrane
-                    </span>
-                  </div>
+              <div className="space-y-6 pt-4">
+                <div className="flex items-center justify-between">
+                   <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Kalendarz Rezerwacji</label>
+                   <div className="flex items-center gap-2">
+                      <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white">
+                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path d="M15 19l-7-7 7-7" /></svg>
+                      </button>
+                      <span className="text-xs font-black uppercase tracking-widest text-white/80 w-32 text-center">
+                        {MONTHS_PL[calendarMonth.month]} {calendarMonth.year}
+                      </span>
+                      <button onClick={nextMonth} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white">
+                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path d="M9 5l7 7-7 7" /></svg>
+                      </button>
+                   </div>
                 </div>
 
-                {/* Reservation form */}
-                <form onSubmit={handleReserve} className="mt-4 space-y-3" noValidate>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor="rs-start" className="block text-xs font-medium mb-1" style={{ color: "var(--color-text-secondary)" }}>
-                        Od
-                      </label>
-                      <input
-                        id="rs-start"
-                        type="datetime-local"
-                        className={`input-dark text-sm ${fieldErrors.start ? "input-error" : ""}`}
-                        value={reserveStart}
-                        onChange={(e) => {
-                          setReserveStart(e.target.value);
-                          setSelectedStart(e.target.value ? new Date(e.target.value) : null);
-                          if (fieldErrors.start) setFieldErrors((p) => ({ ...p, start: "" }));
-                        }}
-                      />
-                      {fieldErrors.start && <p className="field-error">{fieldErrors.start}</p>}
-                    </div>
-                    <div>
-                      <label htmlFor="rs-end" className="block text-xs font-medium mb-1" style={{ color: "var(--color-text-secondary)" }}>
-                        Do
-                      </label>
-                      <input
-                        id="rs-end"
-                        type="datetime-local"
-                        className={`input-dark text-sm ${fieldErrors.end ? "input-error" : ""}`}
-                        value={reserveEnd}
-                        onChange={(e) => {
-                          setReserveEnd(e.target.value);
-                          setSelectedEnd(e.target.value ? new Date(e.target.value) : null);
-                          if (fieldErrors.end) setFieldErrors((p) => ({ ...p, end: "" }));
-                        }}
-                      />
-                      {fieldErrors.end && <p className="field-error">{fieldErrors.end}</p>}
-                    </div>
-                  </div>
+                <div className="bg-black/20 rounded-[2rem] p-6 border border-white/5">
+                   <div className="grid grid-cols-7 mb-4">
+                      {DAYS_PL.map(d => <div key={d} className="text-[9px] font-black uppercase text-white/20 text-center">{d}</div>)}
+                   </div>
+                   <div className="grid grid-cols-7 gap-1">
+                      {/* Empty cells */}
+                      {Array.from({ length: firstDayOfMonth(calendarMonth.year, calendarMonth.month) }).map((_, i) => (
+                        <div key={`empty-${i}`} />
+                      ))}
+                      {/* Day cells */}
+                      {Array.from({ length: daysInMonth(calendarMonth.year, calendarMonth.month) }).map((_, i) => {
+                        const day = i + 1;
+                        const date = dateFromYMD(calendarMonth.year, calendarMonth.month, day);
+                        const isReserved = existingReservations.some(r => {
+                          const s = new Date(r.date_start_planned);
+                          const e = new Date(r.date_end_planned);
+                          return date >= s && date <= e;
+                        });
+                        const isSelected = (selectedStart && sameDay(date, selectedStart)) || 
+                                           (selectedEnd && sameDay(date, selectedEnd)) ||
+                                           (selectedStart && selectedEnd && date > selectedStart && date < selectedEnd);
 
-                  <button type="submit" disabled={reserving} className="btn-primary w-full">
-                    {reserving ? (
-                      <>
-                        <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                        Rezerwowanie...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Zarezerwuj
-                      </>
-                    )}
-                  </button>
-                </form>
-              </section>
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            disabled={isReserved}
+                            onClick={() => handleCalendarDayClick(day)}
+                            className={`h-10 rounded-xl text-xs font-bold transition-all flex items-center justify-center relative group/day
+                              ${isReserved ? "text-white/10 cursor-not-allowed" : "text-white/70 hover:bg-purple-500/20 hover:text-white"}
+                              ${isSelected ? "bg-purple-500 !text-white shadow-[0_0_15px_rgba(139,92,246,0.5)]" : ""}
+                            `}
+                          >
+                            {day}
+                            {isReserved && <div className="absolute bottom-1 w-1 h-1 rounded-full bg-white/10" />}
+                          </button>
+                        );
+                      })}
+                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Panel Footer */}
+            <div className="p-8 border-t border-white/5 bg-black/20 space-y-6">
+               <div className="grid grid-cols-2 gap-6 items-end">
+                  <div className="space-y-3">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Orientacyjna Cena Paliwa (PLN)</label>
+                     <input 
+                        type="number"
+                        className="input-dark bg-white/5 border-white/10 text-white rounded-xl py-3 px-4 w-full text-sm font-bold focus:border-purple-500/50"
+                        placeholder="0.00"
+                        value={reservePrice}
+                        onChange={(e) => setReservePrice(e.target.value)}
+                     />
+                  </div>
+                  <div className="text-right space-y-1">
+                     <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Łączny Koszt</span>
+                     <div className="text-2xl font-black text-white">
+                        {selectedStart && selectedEnd ? `${(Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000*60*60*24))) * 150) + (parseFloat(reservePrice) || 0)} PLN` : "—"}
+                     </div>
+                  </div>
+               </div>
+
+               <button
+                  onClick={handleReserve}
+                  disabled={reserving || !selectedStart || !selectedEnd}
+                  className="btn-primary w-full py-5 rounded-2xl shadow-[0_15px_40px_rgba(139,92,246,0.3)] disabled:shadow-none disabled:opacity-30 transition-all text-base font-black uppercase tracking-widest"
+               >
+                  {reserving ? "Przetwarzanie..." : "Zatwierdź Rezerwację"}
+               </button>
             </div>
           </div>
         </div>

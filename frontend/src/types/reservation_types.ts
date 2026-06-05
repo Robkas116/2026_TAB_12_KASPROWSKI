@@ -23,6 +23,9 @@ export interface ReservationPublic extends ReservationBase {
 export interface ReservationCreate extends ReservationBase {}
 
 export interface ReservationUpdate {
+    date_start_planned?: string | null;
+    date_end_planned?: string | null;
+    purpose?: Purpose | null;
     date_start?: string | null;
     date_end?: string | null;
     price?: number | null;
