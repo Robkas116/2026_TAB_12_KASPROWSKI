@@ -85,7 +85,12 @@ const FIELD_ORDER = [
   "state_end",
 ];
 
-const HIDDEN_FIELDS = new Set(["id", "state", "state_start", "state_end", "date_start", "date_end", "vehicle_id", "worker_id"]);
+const PURPOSE_OPTIONS = [
+  { value: "business", label: "Służbowy" },
+  { value: "private", label: "Prywatny" },
+];
+
+const HIDDEN_FIELDS = new Set(["id", "state", "state_start", "state_end", "date_start", "date_end", "vehicle_id", "worker_id", "distance"]);
 const EDITABLE_FIELDS = new Set(["date_start_planned", "date_end_planned", "price", "purpose", "vehicle_id", "worker_id"]);
 
 export default function ReservationsPage() {
@@ -363,7 +368,7 @@ export default function ReservationsPage() {
 
       {/* Reservation Cards */}
       {!loading && !error && reservations.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {reservations.map((er, index) => {
             const stateStyle = STATE_COLORS[er.reservation.state] || STATE_COLORS.created;
             const stateLabel = STATE_LABELS[er.reservation.state] || er.reservation.state;
@@ -501,15 +506,36 @@ export default function ReservationsPage() {
                       </label>
                       {isEditable ? (
                         <div>
-                          <input 
-                            type={key.includes("date") || key.includes("planned") ? "datetime-local" : key === "price" || key === "distance" ? "number" : "text"}
-                            step={key === "price" ? "0.01" : undefined}
-                            className={`input-dark w-full text-sm ${error ? "input-error" : ""}`}
-                            value={value as string | number}
-                            onChange={(e) => handleFieldChange(key, e.target.value)}
-                          />
-                          {error && (
-                            <p className="field-error mt-1">{error}</p>
+                          {key === "purpose" ? (
+                            <>
+                              <select
+                                className={`input-dark w-full text-sm ${error ? "input-error" : ""}`}
+                                value={String(value)}
+                                onChange={(e) => handleFieldChange(key, e.target.value)}
+                              >
+                                {PURPOSE_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                              {error && (
+                                <p className="field-error mt-1">{error}</p>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <input
+                                type={key.includes("date") || key.includes("planned") ? "datetime-local" : key === "price" || key === "distance" ? "number" : "text"}
+                                step={key === "price" ? "0.01" : undefined}
+                                className={`input-dark w-full text-sm ${error ? "input-error" : ""}`}
+                                value={value as string | number}
+                                onChange={(e) => handleFieldChange(key, e.target.value)}
+                              />
+                              {error && (
+                                <p className="field-error mt-1">{error}</p>
+                              )}
+                            </>
                           )}
                         </div>
                       ) : (
