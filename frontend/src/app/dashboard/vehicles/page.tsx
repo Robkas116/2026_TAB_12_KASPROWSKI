@@ -42,7 +42,7 @@ function carGradient(index: number) {
   return CAR_COLORS[index % CAR_COLORS.length];
 }
 
-/* ── Mini calendar helpers ── */
+
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -70,7 +70,7 @@ export default function VehiclesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /* Panel state */
+  
   const [panelVehicle, setPanelVehicle] = useState<EnrichedVehicle | null>(null);
   const [reserveStart, setReserveStart] = useState("");
   const [reserveEnd, setReserveEnd] = useState("");
@@ -99,7 +99,7 @@ export default function VehiclesPage() {
         setofequipmentApi.getAll(),
       ]);
 
-      // Backend returns { data, count } for these endpoints
+     
       const vehicleItems: VehiclePublic[] = vehResp.items || [];
       const models: VehModelPublic[] = (modelResp as unknown as { data: VehModelPublic[]; count: number }).data || [];
       const makes: MakePublic[] = (makeResp as unknown as { data: MakePublic[]; count: number }).data || [];
@@ -135,7 +135,7 @@ export default function VehiclesPage() {
     fetchData();
   }, [fetchData]);
 
-  /* ── Panel open / close ── */
+  
   const openPanel = async (ev: EnrichedVehicle) => {
     setPanelVehicle(ev);
     setReserveStart("");
@@ -168,7 +168,7 @@ export default function VehiclesPage() {
     return () => document.removeEventListener("keydown", handler);
   }, [panelVehicle]);
 
-  /* ── Blocked dates set ── */
+
   const blockedDates = useMemo(() => {
     const set = new Set<string>();
     for (const r of existingReservations) {
@@ -183,7 +183,7 @@ export default function VehiclesPage() {
     return set;
   }, [existingReservations]);
 
-  /* ── Calendar click handlers ── */
+
   const handleCalendarDayClick = (day: number) => {
     const d = dateFromYMD(calendarMonth.year, calendarMonth.month, day);
     const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
@@ -193,16 +193,34 @@ export default function VehiclesPage() {
     if (!selectedStart || (selectedStart && selectedEnd)) {
       setSelectedStart(d);
       setSelectedEnd(null);
-      setReserveStart(d.toISOString().slice(0, 16));
+      
+
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      setReserveStart(`${year}-${month}-${day}T${hours}:${minutes}`);
+      
       setReserveEnd("");
       setFieldErrors({});
     } else {
       if (d < selectedStart) {
         setSelectedStart(d);
-        setReserveStart(d.toISOString().slice(0, 16));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        setReserveStart(`${year}-${month}-${day}T${hours}:${minutes}`);
       } else {
         setSelectedEnd(d);
-        setReserveEnd(d.toISOString().slice(0, 16));
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        setReserveEnd(`${year}-${month}-${day}T${hours}:${minutes}`);
         setFieldErrors({});
       }
     }
@@ -219,7 +237,7 @@ export default function VehiclesPage() {
     return (selectedStart && sameDay(d, selectedStart)) || (selectedEnd && sameDay(d, selectedEnd));
   };
 
-  /* ── Reservation submit ── */
+
   const handleReserve = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: Record<string, string> = {};
@@ -260,12 +278,12 @@ export default function VehiclesPage() {
     setCalendarMonth((p) => p.month === 11 ? { year: p.year + 1, month: 0 } : { year: p.year, month: p.month + 1 });
   };
 
-  /* ── Calendar grid ── */
+
   const renderCalendar = () => {
     const { year, month } = calendarMonth;
     const totalDays = daysInMonth(year, month);
-    const fdom = firstDayOfMonth(year, month); // 0=Sun
-    const startOffset = fdom === 0 ? 6 : fdom - 1; // Start from Monday
+    const fdom = firstDayOfMonth(year, month); 
+    const startOffset = fdom === 0 ? 6 : fdom - 1; 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 

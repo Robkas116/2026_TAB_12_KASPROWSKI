@@ -27,7 +27,17 @@ export default function EditModal({
       for (const [key, value] of Object.entries(initialData)) {
         if (key === "id") continue;
         if (key.includes("date") && value && typeof value === "string") {
-          clean[key] = new Date(value).toISOString().slice(0, 16);
+          const d = new Date(value);
+          if (!isNaN(d.getTime())) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            const hours = String(d.getHours()).padStart(2, "0");
+            const minutes = String(d.getMinutes()).padStart(2, "0");
+            clean[key] = `${year}-${month}-${day}T${hours}:${minutes}`;
+          } else {
+            clean[key] = value;
+          }
         } else {
           clean[key] = value != null ? String(value) : "";
         }
