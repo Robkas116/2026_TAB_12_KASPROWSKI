@@ -44,20 +44,25 @@ def create_reservation(
 
 
 def get_all_reservations(
-    *, session: Session, skip: int = 0, limit: int = 100
+    *, session: Session, skip: int = 0, limit: int = 100, worker_id: int | None = None
 ) -> ReservationsPublic:
-    """Retrieves all reservations from the database with optional pagination.
+    """Retrieves all reservations from the database with optional pagination and worker filtering.
 
     Args:
         session (Session): The database session.
         skip (int, optional): Number of records to skip (offset). Defaults to 0.
         limit (int, optional): Maximum number of records to return. Defaults to 100.
+        worker_id (int, optional): ID of the worker to filter reservations for.
 
     Returns:
         ReservationsPublic: A Pydantic schema containing the list of reservations and the total count.
     """
     statement = select(Reservation)
     count_statement = select(func.count()).select_from(Reservation)
+
+    if worker_id is not None:
+        statement = statement.where(Reservation.worker_id == worker_id)
+        count_statement = count_statement.where(Reservation.worker_id == worker_id)
 
     total_count = session.scalar(count_statement) or 0
     reservations = session.scalars(statement.offset(skip).limit(limit)).all()

@@ -46,18 +46,22 @@ def get_reservations(
     db: Session = Depends(get_db),
     skip: int = Query(0, description="Number of items to skip (offset)"),
     limit: int = Query(100, le=1000, description="Max number of items to return"),
+    worker_id: int | None = Query(None, description="Filter reservations by worker ID"),
 ):
-    """Retrieves all Reservations with optional pagination.
+    """Retrieves all Reservations with optional pagination and filtering.
 
     Args:
         db: The database session dependency.
         skip: Number of records to skip (offset).
         limit: Maximum number of records to return.
+        worker_id: Filter by worker ID.
 
     Returns:
         A list of reservations along with the total count.
     """
-    return reservation_crud.get_all_reservations(session=db, skip=skip, limit=limit)
+    return reservation_crud.get_all_reservations(
+        session=db, skip=skip, limit=limit, worker_id=worker_id
+    )
 
 
 @router.get("/{reservation_id}", response_model=ReservationPublic)

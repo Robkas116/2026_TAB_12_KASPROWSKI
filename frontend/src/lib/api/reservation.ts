@@ -8,10 +8,12 @@ import type {
 import { API_URL } from "./config";
 
 export const reservationApi = {
-    getAll: async (skip = 0, limit = 100): Promise<ReservationsPublic> => {
-        const response = await fetch(
-            `${API_URL}/reservation/?skip=${skip}&limit=${limit}`,
-        );
+    getAll: async (skip = 0, limit = 100, worker_id?: number): Promise<ReservationsPublic> => {
+        let url = `${API_URL}/reservation/?skip=${skip}&limit=${limit}`;
+        if (worker_id !== undefined) {
+            url += `&worker_id=${worker_id}`;
+        }
+        const response = await fetch(url);
         if (!response.ok) throw new Error(`Reservation GET Error: ${response.status}`);
         return response.json();
     },
