@@ -27,18 +27,18 @@ def create_reservation(
 
     Raises:
         HTTPException: If a database integrity constraint fails, such as providing
-            non-existent vehicle_id or worker_id (Status 400).
+            non-existent vehicle_id or worker_id (Status 400), or when the new
+            period overlaps an existing reservation.
     """
-    # try:
-    return reservation_crud.create_reservation(
-        session=db, reservation_in=reservation_in
-    )
-    # except IntegrityError:
-    #     db.rollback()
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail="Database integrity error. Ensure the provided vehicle_id and worker_id exist.",
-    #     )
+    try:
+        return reservation_crud.create_reservation(
+            session=db, reservation_in=reservation_in
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
 
 
 @router.get("/", response_model=ReservationsPublic)
@@ -106,11 +106,19 @@ def update_reservation(
         The updated reservation object if found and updated, otherwise raises HTTPException.
 
     Raises:
-        HTTPException: If the reservation with the given ID is not found (Status 404).
+        HTTPException: If the reservation with the given ID is not found (Status 404), or if
+            the updated period overlaps another reservation.
     """
-    updated_reservation = reservation_crud.update_reservation(
-        session=db, reservation_id=reservation_id, reservation_in=reservation_in
-    )
+    try:
+        updated_reservation = reservation_crud.update_reservation(
+            session=db, reservation_id=reservation_id, reservation_in=reservation_in
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
     if not updated_reservation:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

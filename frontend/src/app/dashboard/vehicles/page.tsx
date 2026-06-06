@@ -59,6 +59,26 @@ function dateFromYMD(y: number, m: number, d: number) {
   return new Date(y, m, d);
 }
 
+function normalizeDayStart(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
+
+function normalizeDayEnd(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+}
+
+function doesRangeOverlap(start: Date, end: Date, reservations: ReservationPublic[]) {
+  if (end <= start) return false;
+  const normalizedStart = normalizeDayStart(start);
+  const normalizedEnd = normalizeDayEnd(end);
+
+  return reservations.some((reservation) => {
+    const reservationStart = normalizeDayStart(new Date(reservation.date_start_planned));
+    const reservationEnd = normalizeDayEnd(new Date(reservation.date_end_planned));
+    return normalizedStart <= reservationEnd && normalizedEnd >= reservationStart;
+  });
+}
+
 const MONTHS_PL = [
   "Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec",
   "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień",
@@ -174,8 +194,8 @@ export default function VehiclesPage() {
   const blockedDates = useMemo(() => {
     const set = new Set<string>();
     for (const r of existingReservations) {
-      const start = new Date(r.date_start_planned);
-      const end = new Date(r.date_end_planned);
+      const start = normalizeDayStart(new Date(r.date_start_planned));
+      const end = normalizeDayEnd(new Date(r.date_end_planned));
       const cur = new Date(start);
       while (cur <= end) {
         set.add(`${cur.getFullYear()}-${cur.getMonth()}-${cur.getDate()}`);
@@ -195,7 +215,6 @@ export default function VehiclesPage() {
     if (!selectedStart || (selectedStart && selectedEnd)) {
       setSelectedStart(d);
       setSelectedEnd(null);
-      
 
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -203,7 +222,7 @@ export default function VehiclesPage() {
       const hours = String(d.getHours()).padStart(2, "0");
       const minutes = String(d.getMinutes()).padStart(2, "0");
       setReserveStart(`${year}-${month}-${day}T${hours}:${minutes}`);
-      
+
       setReserveEnd("");
       setFieldErrors({});
     } else {
@@ -216,6 +235,13 @@ export default function VehiclesPage() {
         const minutes = String(d.getMinutes()).padStart(2, "0");
         setReserveStart(`${year}-${month}-${day}T${hours}:${minutes}`);
       } else {
+        const proposedStart = selectedStart;
+        const proposedEnd = d;
+        if (doesRangeOverlap(proposedStart, proposedEnd, existingReservations)) {
+          setFieldErrors({ range: "Wybrany termin jest już zajęty. Wybierz inny okres." });
+          return;
+        }
+
         setSelectedEnd(d);
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -245,9 +271,16 @@ export default function VehiclesPage() {
     const errors: Record<string, string> = {};
     if (!reserveStart) errors.start = "Wybierz datę rozpoczęcia.";
     if (!reserveEnd) errors.end = "Wybierz datę zakończenia.";
-    if (reserveStart && reserveEnd && new Date(reserveEnd) <= new Date(reserveStart)) {
-      errors.end = "Data zakończenia musi być późniejsza.";
+    const startDate = reserveStart ? new Date(reserveStart) : null;
+    const endDate = reserveEnd ? new Date(reserveEnd) : null;
+
+    if (startDate && endDate && endDate < startDate) {
+      errors.end = "Data zakończenia musi być taka sama lub późniejsza niż data rozpoczęcia.";
     }
+    if (startDate && endDate && doesRangeOverlap(startDate, endDate, existingReservations)) {
+      errors.range = "Wybrany termin pokrywa się z istniejącą rezerwacją.";
+    }
+
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
     if (!panelVehicle) return;
@@ -258,8 +291,8 @@ export default function VehiclesPage() {
       await api.createReservation({
         vehicle_id: panelVehicle.vehicle.id,
         worker_id: user.id,
-        date_start_planned: new Date(reserveStart).toISOString(),
-        date_end_planned: new Date(reserveEnd).toISOString(),
+        date_start_planned: normalizeDayStart(startDate!).toISOString(),
+        date_end_planned: normalizeDayEnd(endDate!).toISOString(),
         purpose: "business",
         price: parseFloat(reservePrice) || 0,
       });
@@ -300,37 +333,41 @@ export default function VehiclesPage() {
       const past = date < today;
       const selected = isSelected(d);
       const inRange = isInRange(d);
+      const candidateBlocking = !!(selectedStart && !selectedEnd && date > selectedStart && doesRangeOverlap(selectedStart, date, existingReservations));
 
       cells.push(
         <button
           key={d}
           type="button"
-          disabled={blocked || past}
+          disabled={blocked || past || candidateBlocking}
           onClick={() => handleCalendarDayClick(d)}
           className={`h-9 w-9 rounded-lg text-xs font-medium transition-all flex items-center justify-center
-            ${blocked
+            ${blocked || candidateBlocking
               ? "line-through cursor-not-allowed"
               : past
-                ? "opacity-30 cursor-default"
+                ? "opacity-30 cursor-not-allowed"
                 : "hover:bg-white/10 cursor-pointer"}
             ${selected ? "!text-white" : ""}
-            ${inRange ? "" : ""}
           `}
           style={{
             background: selected
               ? "var(--color-accent)"
               : inRange
                 ? "var(--color-accent-glow)"
-                : blocked
+                : blocked || candidateBlocking
                   ? "var(--color-error-soft)"
-                  : "transparent",
+                  : past
+                    ? "rgba(255,255,255,0.04)"
+                    : "transparent",
             color: selected
               ? "#fff"
-              : blocked
+              : blocked || candidateBlocking
                 ? "var(--color-error)"
                 : inRange
                   ? "var(--color-accent-soft)"
-                  : "var(--color-text-secondary)",
+                  : past
+                    ? "var(--color-text-secondary)"
+                    : "var(--color-text-secondary)",
           }}
         >
           {d}
@@ -483,10 +520,10 @@ export default function VehiclesPage() {
 
       {/* --- SIDE PANEL --- */}
       {panelVehicle && (
-        <div className="fixed inset-0 z-[100] flex justify-end" role="dialog" aria-modal="true">
+        <div className="fixed inset-x-0 top-16 bottom-0 z-[100] flex justify-end" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={closePanel} />
           
-          <div className="relative z-10 w-full md:w-[38rem] h-full bg-[#0d0f14] shadow-[-20px_0_60px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col border-l border-white/5">
+          <div className="relative z-10 w-full md:w-[35rem] h-full bg-[#0d0f14] shadow-[-20px_0_60px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col border-l border-white/5">
             {/* Header */}
             <div className="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
               <div className="space-y-1">
@@ -619,6 +656,12 @@ export default function VehiclesPage() {
                      </div>
                   </div>
                </div>
+
+               {fieldErrors.range && (
+                 <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+                   {fieldErrors.range}
+                 </div>
+               )}
 
                <button
                   onClick={handleReserve}

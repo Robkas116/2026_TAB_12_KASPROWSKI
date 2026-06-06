@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 
@@ -7,7 +8,29 @@ from models.reservation_model import (
     ReservationUpdate,
     ReservationPublic,
     ReservationsPublic,
+    Reservation_state_enum,
 )
+
+
+def _has_overlapping_reservation(
+    *,
+    session: Session,
+    vehicle_id: int,
+    start: datetime,
+    end: datetime,
+    exclude_reservation_id: int | None = None,
+) -> bool:
+    statement = select(Reservation).where(
+        Reservation.vehicle_id == vehicle_id,
+        Reservation.state != Reservation_state_enum.CANCELED,
+        Reservation.date_start_planned < end,
+        Reservation.date_end_planned > start,
+    )
+    if exclude_reservation_id is not None:
+        statement = statement.where(Reservation.id != exclude_reservation_id)
+
+    result = session.scalars(statement).first()
+    return result is not None
 
 
 def create_reservation(
@@ -27,6 +50,21 @@ def create_reservation(
         ReservationPublic: The newly created reservation object.
     """
 
+    if reservation_in.date_end_planned <= reservation_in.date_start_planned:
+        raise ValueError(
+            "Data zakończenia musi być późniejsza niż data rozpoczęcia."
+        )
+
+    if _has_overlapping_reservation(
+        session=session,
+        vehicle_id=reservation_in.vehicle_id,
+        start=reservation_in.date_start_planned,
+        end=reservation_in.date_end_planned,
+    ):
+        raise ValueError(
+            "Wybrany termin rezerwacji pokrywa się z istniejącą rezerwacją dla tego pojazdu."
+        )
+
     db_obj = Reservation(
         date_start_planned=reservation_in.date_start_planned,
         date_end_planned=reservation_in.date_end_planned,
@@ -34,7 +72,6 @@ def create_reservation(
         purpose=reservation_in.purpose,
         vehicle_id=reservation_in.vehicle_id,
         worker_id=reservation_in.worker_id,
-
     )
 
     session.add(db_obj)
@@ -106,6 +143,24 @@ def update_reservation(
         return None
 
     update_data = reservation_in.model_dump(exclude_unset=True)
+    new_start = update_data.get("date_start_planned", db_reservation.date_start_planned)
+    new_end = update_data.get("date_end_planned", db_reservation.date_end_planned)
+
+    if new_end <= new_start:
+        raise ValueError(
+            "Data zakończenia musi być późniejsza niż data rozpoczęcia."
+        )
+
+    if _has_overlapping_reservation(
+        session=session,
+        vehicle_id=db_reservation.vehicle_id,
+        start=new_start,
+        end=new_end,
+        exclude_reservation_id=db_reservation.id,
+    ):
+        raise ValueError(
+            "Wybrany termin rezerwacji pokrywa się z istniejącą rezerwacją dla tego pojazdu."
+        )
 
     for field, value in update_data.items():
         setattr(db_reservation, field, value)

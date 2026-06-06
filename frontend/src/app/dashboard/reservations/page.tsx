@@ -108,6 +108,25 @@ function dateFromYMD(y: number, m: number, d: number) {
   return new Date(y, m, d);
 }
 
+function normalizeDayStart(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
+
+function normalizeDayEnd(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+}
+
+function doesRangeOverlap(start: Date, end: Date, reservations: ReservationPublic[]) {
+  if (end <= start) return false;
+  const normalizedStart = normalizeDayStart(start);
+  const normalizedEnd = normalizeDayEnd(end);
+  return reservations.some((reservation) => {
+    const reservationStart = normalizeDayStart(new Date(reservation.date_start_planned));
+    const reservationEnd = normalizeDayEnd(new Date(reservation.date_end_planned));
+    return normalizedStart <= reservationEnd && normalizedEnd >= reservationStart;
+  });
+}
+
 export default function ReservationsPage() {
   const [reservations, setReservations] = useState<EnrichedReservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -299,11 +318,16 @@ export default function ReservationsPage() {
        return;
     }
 
+    if (doesRangeOverlap(selectedStart, selectedEnd, existingReservations)) {
+      toast("error", "Wybrany termin pokrywa się z istniejącą rezerwacją. Wybierz inny okres.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const updateData: Record<string, unknown> = {
-         date_start_planned: selectedStart.toISOString(),
-         date_end_planned: selectedEnd.toISOString(),
+         date_start_planned: normalizeDayStart(selectedStart).toISOString(),
+         date_end_planned: normalizeDayEnd(selectedEnd).toISOString(),
          purpose: formData.purpose,
          price: parseFloat(String(formData.price)) || 0
       };
@@ -548,7 +572,7 @@ export default function ReservationsPage() {
 
       {/* --- PANEL BOCZNY --- */}
       {panelReservation && (
-        <div className="fixed inset-0 z-[100] flex justify-end" role="dialog" aria-modal="true">
+        <div className="fixed inset-x-0 top-16 bottom-0 z-[100] flex justify-end" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={closePanel} />
           <div className="relative z-10 w-full md:w-[35rem] h-full bg-[#0d0f14] shadow-[-20px_0_60px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col border-l border-white/5">
             {/* Panel Header */}
