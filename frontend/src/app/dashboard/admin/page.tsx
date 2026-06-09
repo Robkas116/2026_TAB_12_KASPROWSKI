@@ -14,9 +14,17 @@ import { workerApi } from "@/lib/api/worker";
 
 
 import AddModal from "@/components/modals/AddModal";
+import DataTable from "@/components/DataTable";
 import { isPerformedApi } from "@/lib/api/is_performed";
 
 type EntityType = "Makes" |  "Models"| "Equipment" | "Set_Of_Equipment" | "Versions" | "Vehicles"  | "Workers" | "Caretakers" | "Reservations" | "Actions" | "IsPerformed" ;
+
+function extractItems(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data as Record<string, unknown>[];
+  if (data && typeof data === "object" && "items" in data) return (data as Record<string, unknown>).items as Record<string, unknown>[];
+  if (data && typeof data === "object" && "data" in data) return (data as Record<string, unknown>).data as Record<string, unknown>[];
+  return [];
+}
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState<EntityType>("Makes");
@@ -25,6 +33,8 @@ export default function Dashboard() {
     const [error, setError] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [itemToEdit, setItemToEdit] = useState<Record<string, unknown> | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const loadData = async (entity: EntityType) => {
         setLoading(true);
@@ -183,6 +193,66 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
         return entity;
     };
 
+    const handleEditClick = (item: unknown) => {
+        setItemToEdit(item as Record<string, unknown>);
+        setIsEditModalOpen(true);
+    };
+
+    const handleDeleteClick = (id: number) => {
+        const items = extractItems(data);
+        const item = items.find((i: unknown) => (i as Record<string, unknown>).id === id);
+        if (item) {
+            // Tutaj można dodać DeleteModal jeśli potrzebny
+            handleDeleteSubmit(id);
+        }
+    };
+
+    const handleDeleteSubmit = async (id: number) => {
+        setSaving(true);
+        try {
+            switch (activeTab) {
+                case "Makes":
+                    await makeApi.delete(id);
+                    break;
+                case "Models":
+                    await vehmodelApi.delete(id);
+                    break;
+                case "Equipment":
+                    await equipmentApi.delete(id);
+                    break;
+                case "Set_Of_Equipment":
+                    await setofequipmentApi.delete(id);
+                    break;
+                case "Versions":
+                    await versionApi.delete(id);
+                    break;
+                case "Vehicles":
+                    await vehicleApi.delete(id);
+                    break;
+                case "Workers":
+                    await workerApi.delete(id);
+                    break;
+                case "Caretakers":
+                    await caretakerApi.delete(id);
+                    break;
+                case "Reservations":
+                    await reservationApi.delete(id);
+                    break;
+                case "Actions":
+                    await actionApi.delete(id);
+                    break;
+                case "IsPerformed":
+                    await isPerformedApi.delete(id);
+                    break;
+            }
+            await loadData(activeTab);
+        } catch (err: any) {
+            setError(err.message || "Nie udało się usunąć rekordu.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <div className="space-y-8 relative z-10 py-2">
             {/* Nagłówek Panelu */}
@@ -260,29 +330,21 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
                     </div>
                 )}
 
-                {/* Prezentacja danych JSON */}
-                {!loading && !error && data && (
-                    <div className="space-y-4 animate-fadeIn">
-                        {data.total !== undefined && (
-                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                Łączna liczba rekordów: <span className="text-white">{data.total}</span>
-                            </p>
-                        )}
+                {/* Tabela danych */}
+                {!loading && !error && extractItems(data).length > 0 && (
+                    <DataTable
+                        items={extractItems(data)}
+                        onEdit={handleEditClick}
+                        onDelete={handleDeleteClick}
+                    />
+                )}
 
-                        <div className="relative group">
-                            {/* Delikatna poświata pod kodem */}
-                            <div className="absolute inset-0 bg-purple-500/5 rounded-2xl blur-xl pointer-events-none" />
-                            
-                            <pre 
-                                className="relative z-10 border p-5 rounded-2xl overflow-x-auto text-xs sm:text-sm font-mono text-purple-200/90 leading-relaxed shadow-inner"
-                                style={{ 
-                                    background: "rgba(0, 0, 0, 0.2)", 
-                                    borderColor: "var(--color-border)" 
-                                }}
-                            >
-                                {JSON.stringify(data, null, 2)}
-                            </pre>
-                        </div>
+                {/* Brak danych */}
+                {!loading && !error && extractItems(data).length === 0 && (
+                    <div className="text-center py-12">
+                        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                            Brak rekordów do wyświetlenia
+                        </p>
                     </div>
                 )}
             </div>
@@ -309,6 +371,7 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
                     { name: "" }
                 }
             />
+           
         </div>
     );
 }
