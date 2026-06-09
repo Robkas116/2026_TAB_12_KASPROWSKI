@@ -34,7 +34,10 @@ export default function DeleteModal({
     <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
       <div className="absolute inset-0" onClick={isDeleting ? undefined : onClose} aria-hidden="true" />
 
-      <div className="glass-overlay rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl text-center">
+      <div 
+          className="rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto"
+          style={{ backgroundColor: "var(--color-background, #111827)" }}
+      >
         {/* Danger icon */}
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full"
           style={{ background: "var(--color-error-soft)" }}
@@ -58,13 +61,13 @@ export default function DeleteModal({
           Tej operacji nie można cofnąć.
         </p>
 
-        <div className="flex justify-center gap-3">
+        <div className=" cursor-pointer flex justify-center gap-3">
           <button
             ref={cancelRef}
             type="button"
             onClick={onClose}
             disabled={isDeleting}
-            className="btn-ghost"
+            className="cursor-pointer btn-ghost"
           >
             Anuluj
           </button>
@@ -72,7 +75,7 @@ export default function DeleteModal({
             type="button"
             onClick={onConfirm}
             disabled={isDeleting}
-            className="btn-danger"
+            className="cursor-pointer btn-danger"
           >
             {isDeleting ? (
               <>

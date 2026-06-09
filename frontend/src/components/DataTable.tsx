@@ -2,9 +2,11 @@ interface DataTableProps {
   items: Record<string, unknown>[];
   onEdit: (item: unknown) => void;
   onDelete: (id: number) => void;
+  onAddEquipmentToSet?: (setId: number) => void;
+  onRemoveEquipmentFromSet?: (setId: number) => void;
 }
 
-export default function DataTable({ items, onEdit, onDelete }: DataTableProps) {
+export default function DataTable({ items, onEdit, onDelete, onAddEquipmentToSet, onRemoveEquipmentFromSet }: DataTableProps) {
   if (!items || items.length === 0) return null;
 
   const columns = Object.keys(items[0]);
@@ -65,7 +67,7 @@ export default function DataTable({ items, onEdit, onDelete }: DataTableProps) {
                     <button
                       type="button"
                       onClick={() => onEdit(item)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:-translate-y-px"
+                      className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:-translate-y-px"
                       style={{
                         background: "var(--color-accent-glow)",
                         color: "var(--color-accent-soft)",
@@ -79,7 +81,7 @@ export default function DataTable({ items, onEdit, onDelete }: DataTableProps) {
                     <button
                       type="button"
                       onClick={() => onDelete(item.id as number)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:-translate-y-px"
+                      className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:-translate-y-px"
                       style={{
                         background: "var(--color-error-soft)",
                         color: "var(--color-error)",
@@ -90,6 +92,38 @@ export default function DataTable({ items, onEdit, onDelete }: DataTableProps) {
                       </svg>
                       Usuń
                     </button>
+                    {onAddEquipmentToSet && (
+                      <button
+                        type="button"
+                        onClick={() => onAddEquipmentToSet(item.id as number)}
+                        className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:-translate-y-px"
+                        style={{
+                          background: "rgba(59, 130, 246, 0.1)",
+                          color: "rgb(59, 130, 246)",
+                        }}
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        +Wyp
+                      </button>
+                    )}
+                    {onRemoveEquipmentFromSet && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveEquipmentFromSet(item.id as number)}
+                        className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:-translate-y-px"
+                        style={{
+                          background: "rgba(251, 191, 36, 0.1)",
+                          color: "rgb(251, 146, 60)",
+                        }}
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                        </svg>
+                        -Wyp
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -120,7 +154,7 @@ export default function DataTable({ items, onEdit, onDelete }: DataTableProps) {
                 <button
                   type="button"
                   onClick={() => onEdit(item)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                  className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
                   style={{
                     background: "var(--color-accent-glow)",
                     color: "var(--color-accent-soft)",
@@ -134,7 +168,7 @@ export default function DataTable({ items, onEdit, onDelete }: DataTableProps) {
                 <button
                   type="button"
                   onClick={() => onDelete(item.id as number)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                  className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
                   style={{
                     background: "var(--color-error-soft)",
                     color: "var(--color-error)",
@@ -145,6 +179,38 @@ export default function DataTable({ items, onEdit, onDelete }: DataTableProps) {
                   </svg>
                   Usuń
                 </button>
+                {onAddEquipmentToSet && (
+                  <button
+                    type="button"
+                    onClick={() => onAddEquipmentToSet(item.id as number)}
+                    className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                    style={{
+                      background: "rgba(59, 130, 246, 0.1)",
+                      color: "rgb(59, 130, 246)",
+                    }}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    +Wyp
+                  </button>
+                )}
+                {onRemoveEquipmentFromSet && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveEquipmentFromSet(item.id as number)}
+                    className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium"
+                    style={{
+                      background: "rgba(251, 191, 36, 0.1)",
+                      color: "rgb(251, 146, 60)",
+                    }}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                    -Wyp
+                  </button>
+                )}
               </div>
             </div>
           );

@@ -67,4 +67,40 @@ export const setofequipmentApi = {
 		}
 		return response.json();
 	},
+
+	addEquipmentToSet: async (
+		setOfEquipmentId: number,
+		equipmentId: number,
+	): Promise<SetOfEquipmentPublic> => {
+		const response = await fetch(
+			`${API_URL}/set-of-equipment/${setOfEquipmentId}/equipment/${equipmentId}`,
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+			},
+		);
+		if (!response.ok) {
+			const errorData = await response.json();
+			throw new Error(`Failed to add equipment to set: ${errorData.detail || response.status}`);
+		}
+		return response.json();
+	},
+
+	removeEquipmentFromSet: async (
+		setOfEquipmentId: number,
+		equipmentId: number,
+	): Promise<SetOfEquipmentPublic> => {
+		const response = await fetch(
+			`${API_URL}/set-of-equipment/${setOfEquipmentId}/equipment/${equipmentId}`,
+			{
+				method: "DELETE",
+				headers: { "Content-Type": "application/json" },
+			},
+		);
+		if (!response.ok) {
+			const errorData = await response.json();
+			throw new Error(`Failed to remove equipment from set: ${errorData.detail || response.status}`);
+		}
+		return response.json();
+	},
 };

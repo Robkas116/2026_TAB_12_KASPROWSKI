@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { OPTIONAL_FIELDS } from "@/lib/forms";
+import { versionApi } from "@/lib/api/version";
 import type { EntityType } from "@/types";
 
 interface AddModalProps {
@@ -20,6 +21,8 @@ export default function AddModal({
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [versions, setVersions] = useState<Array<{ id: number; destination: string }>>([]);
+  const [loadingVersions, setLoadingVersions] = useState(false);
 
   useEffect(() => {
     if (isOpen && initialState) {
@@ -28,6 +31,23 @@ export default function AddModal({
       setSubmitted(false);
     }
   }, [isOpen, initialState]);
+
+  useEffect(() => {
+    if (!isOpen || entityType !== "Set_Of_Equipment") return;
+    const fetchVersions = async () => {
+      setLoadingVersions(true);
+      try {
+        const result = await versionApi.getAll();
+        const items = Array.isArray(result) ? result : (result as any)?.data || [];
+        setVersions(items);
+      } catch {
+        setVersions([]);
+      } finally {
+        setLoadingVersions(false);
+      }
+    };
+    fetchVersions();
+  }, [isOpen, entityType]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -125,7 +145,10 @@ export default function AddModal({
       {/* Backdrop click to close */}
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
-      <div className="glass-overlay rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl">
+      <div 
+          className="rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto"
+          style={{ backgroundColor: "var(--color-background, #111827)" }}
+      >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>
@@ -134,7 +157,7 @@ export default function AddModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg transition-colors hover:bg-white/5"
+            className="cursor-pointer p-1.5 rounded-lg transition-colors hover:bg-white/5"
             style={{ color: "var(--color-text-muted)" }}
             aria-label="Zamknij"
           >
@@ -191,11 +214,47 @@ export default function AddModal({
                     <option value="completed">Zakończona</option>
                     <option value="canceled">Anulowana</option>
                   </select>
+                ) : field === "version_id" ? (
+                  <div className="relative">
+                    <select
+                      id={`add-${field}`}
+                      name={field}
+                      value={formData[field] || ""}
+                      onChange={handleChange}
+                      disabled={loadingVersions}
+                      className={`w-full px-4 py-2.5 rounded-lg appearance-none cursor-pointer transition-all font-medium text-sm pr-10 ${hasError ? "input-error" : "input-dark"}`}
+                      style={{
+                        background: "var(--color-input-bg)",
+                        color: "var(--color-text-primary)",
+                        border: `1px solid var(--color-border)`,
+                        maxHeight: "200px",
+                      }}
+                      required={!isOptional}
+                    >
+                      <option value="" className="bg-gray-900 text-white">
+                        Wybierz wersję...
+                      </option>
+                      {versions.map((v) => (
+                        <option key={v.id} value={v.id} className="bg-gray-900 text-white">
+                          {v.destination}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-all"
+                      style={{ color: "var(--color-text-secondary)" }}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </div>
                 ) : (
                   <input
                     id={`add-${field}`}
                     type={getInputType(field)}
-                    step={field === "price" || field === "distance" ? "0.01" : undefined}
+                    step={field === "price" || field === "distance" ? "1" : undefined}
                     name={field}
                     value={formData[field] || ""}
                     onChange={handleChange}
@@ -219,10 +278,10 @@ export default function AddModal({
           })}
 
           <div className="flex justify-end gap-3 pt-4 border-t" style={{ borderColor: "var(--color-border)" }}>
-            <button type="button" onClick={onClose} className="btn-ghost">
+            <button type="button" onClick={onClose} className="cursor-pointer btn-ghost">
               Anuluj
             </button>
-            <button type="submit" className="btn-primary">
+            <button type="submit" className="cursor-pointer btn-primary">
               Zapisz
             </button>
           </div>
