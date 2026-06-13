@@ -89,13 +89,11 @@ export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<EnrichedVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  
   const [panelVehicle, setPanelVehicle] = useState<EnrichedVehicle | null>(null);
   const [reserveStart, setReserveStart] = useState("");
   const [reserveEnd, setReserveEnd] = useState("");
-  const [reservePrice, setReservePrice] = useState("");
   const [reserving, setReserving] = useState(false);
+  const [reservePurpose, setReservePurpose] = useState("business");
   const [existingReservations, setExistingReservations] = useState<ReservationPublic[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [calendarMonth, setCalendarMonth] = useState(() => {
@@ -161,10 +159,10 @@ export default function VehiclesPage() {
     setPanelVehicle(ev);
     setReserveStart("");
     setReserveEnd("");
-    setReservePrice("");
     setFieldErrors({});
     setSelectedStart(null);
     setSelectedEnd(null);
+    setReservePurpose("business");
     const now = new Date();
     setCalendarMonth({ year: now.getFullYear(), month: now.getMonth() });
 
@@ -286,6 +284,9 @@ export default function VehiclesPage() {
     if (!panelVehicle) return;
 
     setReserving(true);
+    const days = (startDate && endDate) ? Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+    const finalPrice = reservePurpose === "business" ? 0 : days * 150;
+
     try {
       const user = await api.getCurrentUser();
       await api.createReservation({
@@ -293,8 +294,8 @@ export default function VehiclesPage() {
         worker_id: user.id,
         date_start_planned: normalizeDayStart(startDate!).toISOString(),
         date_end_planned: normalizeDayEnd(endDate!).toISOString(),
-        purpose: "business",
-        price: parseFloat(reservePrice) || 0,
+        purpose: reservePurpose as "business" | "private",
+        price: finalPrice,      
       });
       toast("success", "Rezerwacja została utworzona!");
       closePanel();
@@ -312,7 +313,6 @@ export default function VehiclesPage() {
   const nextMonth = () => {
     setCalendarMonth((p) => p.month === 11 ? { year: p.year + 1, month: 0 } : { year: p.year, month: p.month + 1 });
   };
-
 
   const renderCalendar = () => {
     const { year, month } = calendarMonth;
@@ -579,6 +579,17 @@ export default function VehiclesPage() {
 
               <div className="space-y-6 pt-4">
                 <div className="flex items-center justify-between">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Cel rezerwacji</label>
+                      <select
+                        className="input-dark bg-white/5 border-white/10 text-white rounded-xl py-3 px-4 w-full text-sm font-bold focus:border-purple-500/50 cursor-pointer appearance-none"
+                        value={reservePurpose}
+                        onChange={(e) => setReservePurpose(e.target.value)}
+                      >
+                      <option value="business" className="bg-[#0d0f14]">Służbowy (0 PLN)</option>
+                      <option value="private" className="bg-[#0d0f14]">Prywatny (150 PLN / doba)</option>
+                      </select>
+                  </div>
                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Kalendarz Rezerwacji</label>
                    <div className="flex items-center gap-2">
                       <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white">
@@ -637,39 +648,31 @@ export default function VehiclesPage() {
             </div>
 
             {/* Panel Footer */}
-            <div className="p-8 border-t border-white/5 bg-black/20 space-y-6">
-               <div className="grid grid-cols-2 gap-6 items-end">
-                  <div className="space-y-3">
-                     <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Orientacyjna Cena Paliwa (PLN)</label>
-                     <input 
-                        type="number"
-                        className="input-dark bg-white/5 border-white/10 text-white rounded-xl py-3 px-4 w-full text-sm font-bold focus:border-purple-500/50"
-                        placeholder="0.00"
-                        value={reservePrice}
-                        onChange={(e) => setReservePrice(e.target.value)}
-                     />
-                  </div>
+              <div className="p-8 border-t border-white/5 bg-black/20 space-y-6">
+                <div className="flex justify-end items-end">
                   <div className="text-right space-y-1">
-                     <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Łączny Koszt</span>
-                     <div className="text-2xl font-black text-white">
-                        {selectedStart && selectedEnd ? `${(Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000*60*60*24))) * 150) + (parseFloat(reservePrice) || 0)} PLN` : "—"}
-                     </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Łączny Koszt</span>
+                    <div className="text-2xl font-black text-white">
+                      {selectedStart && selectedEnd 
+                      ? `${reservePurpose === "business" ? 0 : Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000*60*60*24))) * 150} PLN` 
+                      : "—"}
+                    </div>
                   </div>
-               </div>
+                </div>
 
-               {fieldErrors.range && (
-                 <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
-                   {fieldErrors.range}
-                 </div>
-               )}
+              {fieldErrors.range && (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+                  {fieldErrors.range}
+                </div>
+              )}
 
-               <button
-                  onClick={handleReserve}
-                  disabled={reserving || !selectedStart || !selectedEnd}
-                  className="btn-primary w-full py-5 rounded-2xl shadow-[0_15px_40px_rgba(139,92,246,0.3)] disabled:shadow-none disabled:opacity-30 transition-all text-base font-black uppercase tracking-widest"
-               >
-                  {reserving ? "Przetwarzanie..." : "Zatwierdź Rezerwację"}
-               </button>
+              <button
+                onClick={handleReserve}
+                disabled={reserving || !selectedStart || !selectedEnd}
+                className="btn-primary w-full py-5 rounded-2xl shadow-[0_15px_40px_rgba(139,92,246,0.3)] disabled:shadow-none disabled:opacity-30 transition-all text-base font-black uppercase tracking-widest"
+              >
+                {reserving ? "Przetwarzanie..." : "Zatwierdź Rezerwację"}
+              </button>
             </div>
           </div>
         </div>

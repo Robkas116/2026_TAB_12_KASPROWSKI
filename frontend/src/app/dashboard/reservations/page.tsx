@@ -510,12 +510,6 @@ export default function ReservationsPage() {
                           <span className="text-[10px] font-mono tracking-widest font-bold uppercase">RES-{er.reservation.id}</span>
                         </div>
                       </div>
-                      <div className="text-right space-y-1">
-                        <div className="flex items-center gap-2 justify-end text-lg font-black text-white">
-                          <Image src="/assets/icons/icon-fuel-card.svg" alt="Price" width={16} height={16} />
-                          <span>{er.reservation.price > 0 ? `${er.reservation.price.toFixed(0)}` : "0"} <span className="text-[10px] text-white/40">PLN</span></span>
-                        </div>
-                      </div>
                     </div>
 
                     <div className="bg-black/30 rounded-2xl p-5 border border-white/5 space-y-4 relative overflow-hidden group/timeline">
@@ -606,30 +600,19 @@ export default function ReservationsPage() {
 
               {/* Editable Fields */}
               <div className="space-y-6">
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Cel rezerwacji</label>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Cel rezerwacji</label>
                     <select
-                       className="input-dark bg-white/5 border-white/10 text-white rounded-2xl py-4 w-full focus:border-purple-500/50"
-                       value={String(formData.purpose || "business")}
-                       onChange={(e) => handleFieldChange("purpose", e.target.value)}
+                      className="input-dark bg-white/5 border-white/10 text-white rounded-2xl py-4 w-full focus:border-purple-500/50"
+                      value={String(formData.purpose || "business")}
+                      onChange={(e) => handleFieldChange("purpose", e.target.value)}
                     >
-                       {PURPOSE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                       ))}
+                      {PURPOSE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </select>
-                 </div>
-
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Orientacyjna Cena Paliwa (PLN)</label>
-                    <input 
-                       type="number"
-                       className="input-dark bg-white/5 border-white/10 text-white rounded-2xl py-4 px-6 w-full text-sm font-bold focus:border-purple-500/50"
-                       placeholder="0.00"
-                       value={String(formData.price || "")}
-                       onChange={(e) => handleFieldChange("price", e.target.value)}
-                    />
-                 </div>
-              </div>
+                  </div>
+                </div>
 
               {/* REZERVATION CALENDAR */}
               <div className="space-y-6 pt-4">
@@ -670,7 +653,7 @@ export default function ReservationsPage() {
                   <div className="text-right">
                     <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Łączny Koszt</span>
                     <div className="text-xl font-black text-white">
-                      {selectedStart && selectedEnd ? `${(Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000*60*60*24))) * 150) + (parseFloat(String(formData.price)) || 0)} PLN` : "—"}
+                      {selectedStart && selectedEnd ? `${Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000*60*60*24))) * 150} PLN` : "—"}
                     </div>
                   </div>
                 </div>
