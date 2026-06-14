@@ -80,6 +80,18 @@ def change_password(
     return {"message": "Hasło zostało zmienione"}
 
 
+@router.post('/complete-onboarding', response_model=WorkerPublic)
+def complete_onboarding(
+    db: Session = Depends(get_db),
+    current_user: Worker = Depends(deps.get_current_user),
+):
+    current_user.onboarding_completed = True
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @router.delete("/{worker_id}", response_model=dict[str, str])
 def delete_worker(worker_id: int, db: Session = Depends(get_db)):
     """

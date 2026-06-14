@@ -325,9 +325,10 @@ export default function ReservationsPage() {
 
     setIsSubmitting(true);
     try {
+      const toLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       const updateData: Record<string, unknown> = {
-         date_start_planned: normalizeDayStart(selectedStart).toISOString(),
-         date_end_planned: normalizeDayEnd(selectedEnd).toISOString(),
+         date_start_planned: `${toLocalYMD(selectedStart)}T00:00:00`,
+         date_end_planned: `${toLocalYMD(selectedEnd)}T23:59:59`,
          purpose: formData.purpose,
          price: parseFloat(String(formData.price)) || 0
       };

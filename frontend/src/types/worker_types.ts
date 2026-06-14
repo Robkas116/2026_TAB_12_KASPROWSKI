@@ -6,11 +6,14 @@ export interface WorkerBase {
 
 export interface WorkerPublic extends WorkerBase {
 	id: number;
+	onboarding_completed: boolean;
 }
 
 export interface WorkerCreate extends WorkerBase {}
 
-export type WorkerUpdate = Partial<WorkerBase>;
+export type WorkerUpdate = Partial<WorkerBase> & {
+	onboarding_completed?: boolean;
+};
 
 export interface WorkersPublic {
 	data: WorkerPublic[];

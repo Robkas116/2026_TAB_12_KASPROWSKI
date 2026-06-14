@@ -21,6 +21,7 @@ class Worker(Base):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     is_superuser: Mapped[bool] = mapped_column(default=False, nullable=False)
+    onboarding_completed: Mapped[bool] = mapped_column(default=False, nullable=False)
 
     caretakers: Mapped[list["Caretaker"]] = relationship(back_populates="worker")
     reservations: Mapped[list["Reservation"]] = relationship(back_populates="worker")
@@ -41,6 +42,7 @@ class WorkerUpdate(BaseModel):
     email: str | None = Field(default=None, max_length=120)
     password: str | None = Field(default=None, min_length=6)
     is_superuser: bool | None = None
+    onboarding_completed: bool | None = None
 
 
 class PasswordResetRequest(BaseModel):
@@ -64,6 +66,7 @@ class PasswordChange(BaseModel):
 
 class WorkerPublic(WorkerBase):
     id: int
+    onboarding_completed: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 

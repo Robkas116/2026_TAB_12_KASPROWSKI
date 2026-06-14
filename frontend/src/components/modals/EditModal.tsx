@@ -132,11 +132,6 @@ export default function EditModal({
         if ((key.endsWith("_id") || key === "price" || key === "distance") && value !== "" && value !== null) {
           return [key, Number(value)];
         }
-        if (key.includes("date") && value) {
-          if (typeof value === "string" && !value.endsWith("Z")) {
-            return [key, new Date(value).toISOString()];
-          }
-        }
         return [key, value === "" ? null : value];
       }),
     );

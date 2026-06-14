@@ -141,6 +141,12 @@ class ApiService {
     });
   }
 
+  async completeOnboarding(): Promise<WorkerPublic> {
+    return this.request<WorkerPublic>("/api/v1/worker/complete-onboarding", {
+      method: "POST",
+    });
+  }
+
   async getVehicles(): Promise<VehiclesPublic> {
     return this.request<VehiclesPublic>("/api/v1/vehicle/");
   }

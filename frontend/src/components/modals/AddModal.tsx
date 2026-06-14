@@ -114,9 +114,6 @@ export default function AddModal({
         if ((key.endsWith("_id") || key === "price" || key === "distance") && value !== "") {
           return [key, Number(value)];
         }
-        if (key.includes("date") && value) {
-          return [key, new Date(value).toISOString()];
-        }
         return [key, value];
       }),
     );

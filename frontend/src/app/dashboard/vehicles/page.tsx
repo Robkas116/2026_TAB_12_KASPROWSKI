@@ -289,11 +289,12 @@ export default function VehiclesPage() {
 
     try {
       const user = await api.getCurrentUser();
+      const toLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       await api.createReservation({
         vehicle_id: panelVehicle.vehicle.id,
         worker_id: user.id,
-        date_start_planned: normalizeDayStart(startDate!).toISOString(),
-        date_end_planned: normalizeDayEnd(endDate!).toISOString(),
+        date_start_planned: `${toLocalYMD(startDate!)}T00:00:00`,
+        date_end_planned: `${toLocalYMD(endDate!)}T23:59:59`,
         purpose: reservePurpose as "business" | "private",
         price: finalPrice,      
       });
@@ -486,6 +487,12 @@ export default function VehiclesPage() {
                   <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">
                     {ev.modelName}
                   </p>
+                  <p className="text-purple-400/90 text-[11px] font-semibold mt-1 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    Wersja: {ev.equipment?.name || "Brak pakietu"}
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -569,11 +576,31 @@ export default function VehiclesPage() {
 
               <div className="space-y-4">
                  <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Wyposażenie i Pakiety</label>
-                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
-                    <h4 className="font-bold text-white mb-2">{panelVehicle.equipment?.name || "Zestaw Standardowy"}</h4>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      Pojazd wyposażony w standardowe systemy bezpieczeństwa, klimatyzację oraz pakiet multimedialny.
-                    </p>
+                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
+                    <div>
+                      <h4 className="font-bold text-white mb-1">
+                        {panelVehicle.equipment?.name || "Brak przypisanego pakietu"}
+                      </h4>
+                      <p className="text-xs text-gray-400 leading-relaxed">
+                        {panelVehicle.equipment 
+                          ? "Pojazd posiada przypisaną wersję wyposażenia zawierającą poniższe elementy:" 
+                          : "Do tego pojazdu nie przypisano żadnej wersji wyposażenia."}
+                      </p>
+                    </div>
+                    {panelVehicle.equipment?.equipments && panelVehicle.equipment.equipments.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {panelVehicle.equipment.equipments.map((eq) => (
+                          <span key={eq.id} className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs font-semibold text-purple-300 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                            {eq.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      panelVehicle.equipment && (
+                        <p className="text-xs text-gray-500 italic pt-1">Ten pakiet nie zawiera jeszcze żadnych elementów wyposażenia.</p>
+                      )
+                    )}
                  </div>
               </div>
 
