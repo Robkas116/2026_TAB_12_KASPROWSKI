@@ -212,29 +212,36 @@ export default function DashboardLayout({
 						</div>
 
 						{/* User section */}
-						<div className="flex items-center gap-3">
-							<div className="hidden sm:flex items-center gap-2">
+						<div className="flex items-center gap-4">
+							<Link 
+								href="/dashboard/profile"
+								className="flex items-center gap-3 pl-2 pr-4 py-2 rounded-full bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all group/user shadow-lg"
+							>
 								<div
-									className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold"
+									className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-black shadow-xl shadow-purple-500/30 group-hover/user:scale-105 transition-transform"
 									style={{
-										background: "var(--color-accent-glow)",
-										color: "var(--color-accent-soft)",
+										background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+										color: "white",
 									}}
 								>
 									{user.name?.charAt(0).toUpperCase()}
 								</div>
-								<span
-									className="text-sm hidden lg:block"
-									style={{ color: "var(--color-text-secondary)" }}
-								>
-									{user.name}
-								</span>
-							</div>
+								<div className="flex flex-col leading-tight hidden lg:flex">
+									<span className="text-sm font-black text-white group-hover/user:text-purple-400 transition-colors tracking-tight">
+										{user.name}
+									</span>
+									<span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+										{user.is_superuser ? "Administrator" : "Pracownik"}
+									</span>
+								</div>
+							</Link>
+
+							<div className="h-5 w-px bg-white/10 mx-1 hidden sm:block" />
 
 							<button
 								type="button"
 								onClick={handleLogout}
-								className="btn-ghost text-xs !px-3 !py-1.5"
+								className="btn-ghost !px-4 !py-2 !text-xs font-black uppercase tracking-widest text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all border-none"
 							>
 								Wyloguj
 							</button>

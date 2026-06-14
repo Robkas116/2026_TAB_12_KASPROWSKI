@@ -108,22 +108,12 @@ function dateFromYMD(y: number, m: number, d: number) {
   return new Date(y, m, d);
 }
 
-function normalizeDayStart(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-}
-
-function normalizeDayEnd(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
-}
-
 function doesRangeOverlap(start: Date, end: Date, reservations: ReservationPublic[]) {
   if (end <= start) return false;
-  const normalizedStart = normalizeDayStart(start);
-  const normalizedEnd = normalizeDayEnd(end);
   return reservations.some((reservation) => {
-    const reservationStart = normalizeDayStart(new Date(reservation.date_start_planned));
-    const reservationEnd = normalizeDayEnd(new Date(reservation.date_end_planned));
-    return normalizedStart <= reservationEnd && normalizedEnd >= reservationStart;
+    const reservationStart = new Date(reservation.date_start_planned);
+    const reservationEnd = new Date(reservation.date_end_planned);
+    return start < reservationEnd && end > reservationStart;
   });
 }
 
@@ -145,6 +135,7 @@ export default function ReservationsPage() {
   });
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
   const [selectedEnd, setSelectedEnd] = useState<Date | null>(null);
+  const [selectingTimeFor, setSelectingTimeFor] = useState<"start" | "end" | null>(null);
 
   const { toast } = useToast();
 
@@ -207,6 +198,7 @@ export default function ReservationsPage() {
     });
     setFormData(data);
     setShowDeleteConfirm(false);
+    setSelectingTimeFor(null);
 
     const s = new Date(er.reservation.date_start_planned);
     const e = new Date(er.reservation.date_end_planned);
@@ -231,6 +223,7 @@ export default function ReservationsPage() {
     setShowDeleteConfirm(false);
     setSelectedStart(null);
     setSelectedEnd(null);
+    setSelectingTimeFor(null);
   };
 
   const blockedDates = useMemo(() => {
@@ -249,18 +242,66 @@ export default function ReservationsPage() {
 
   const handleCalendarDayClick = (day: number) => {
     const d = dateFromYMD(calendarMonth.year, calendarMonth.month, day);
-    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    if (blockedDates.has(key)) return;
+    if (d < new Date(new Date().setHours(0, 0, 0, 0))) return;
+
+    // Find first available hour
+    let firstAvailableHour = 0;
+    const now = new Date();
+    for (let h = 0; h < 24; h++) {
+      const checkDate = new Date(d);
+      checkDate.setHours(h, 0, 0, 0);
+      const isPast = checkDate < now;
+      const isOccupied = existingReservations.some(r => {
+        const s = new Date(r.date_start_planned);
+        const e = new Date(r.date_end_planned);
+        return checkDate >= s && checkDate < e;
+      });
+      if (!isPast && !isOccupied) {
+        firstAvailableHour = h;
+        break;
+      }
+    }
+    d.setHours(firstAvailableHour, 0, 0, 0);
 
     if (!selectedStart || (selectedStart && selectedEnd)) {
       setSelectedStart(d);
       setSelectedEnd(null);
+      setSelectingTimeFor("start");
     } else {
       if (d < selectedStart) {
         setSelectedStart(d);
+        setSelectingTimeFor("start");
       } else {
         setSelectedEnd(d);
+        setSelectingTimeFor("end");
       }
+    }
+  };
+
+  const handleTimeClick = (hour: number) => {
+    if (!selectingTimeFor) return;
+
+    if (selectingTimeFor === "start" && selectedStart) {
+      const newStart = new Date(selectedStart);
+      newStart.setHours(hour, 0, 0, 0);
+      setSelectedStart(newStart);
+      setSelectingTimeFor(null);
+    } else if (selectingTimeFor === "end" && selectedEnd) {
+      const newEnd = new Date(selectedEnd);
+      newEnd.setHours(hour, 0, 0, 0);
+      
+      if (selectedStart && newEnd <= selectedStart) {
+        toast("error", "Data zakończenia musi być późniejsza niż rozpoczęcia.");
+        return;
+      }
+      
+      if (selectedStart && doesRangeOverlap(selectedStart, newEnd, existingReservations)) {
+        toast("error", "Wybrany termin pokrywa się z istniejącą rezerwacją.");
+        return;
+      }
+
+      setSelectedEnd(newEnd);
+      setSelectingTimeFor(null);
     }
   };
 
@@ -284,23 +325,27 @@ export default function ReservationsPage() {
     for (let d = 1; d <= totalDays; d++) {
       const date = dateFromYMD(year, month, d);
       const key = `${year}-${month}-${d}`;
-      const blocked = blockedDates.has(key);
-      const selected = (selectedStart && sameDay(date, selectedStart)) || (selectedEnd && sameDay(date, selectedEnd));
+      const hasReservation = blockedDates.has(key);
+      const past = date < new Date(new Date().setHours(0, 0, 0, 0));
+      const isStart = selectedStart && sameDay(date, selectedStart);
+      const isEnd = selectedEnd && sameDay(date, selectedEnd);
+      const selected = isStart || isEnd;
       const inRange = selectedStart && selectedEnd && date > selectedStart && date < selectedEnd;
 
       cells.push(
         <button
           key={d}
           type="button"
-          disabled={blocked}
+          disabled={past}
           onClick={() => handleCalendarDayClick(d)}
-          className={`h-9 w-9 rounded-lg text-xs font-medium transition-all flex items-center justify-center
-            ${blocked ? "line-through cursor-not-allowed text-white/10" : "hover:bg-white/10 cursor-pointer text-white/70"}
+          className={`h-9 w-9 rounded-lg text-xs font-medium transition-all flex flex-col items-center justify-center relative
+            ${past ? "opacity-30 cursor-not-allowed" : "hover:bg-white/10 cursor-pointer text-white/70"}
             ${selected ? "!text-white !bg-purple-500 shadow-[0_0_15px_rgba(139,92,246,0.5)]" : ""}
             ${inRange ? "bg-purple-500/20 text-purple-300" : ""}
           `}
         >
           {d}
+          {hasReservation && !selected && <div className="absolute bottom-1 w-1 h-1 rounded-full bg-purple-400/50" />}
         </button>
       );
     }
@@ -325,12 +370,23 @@ export default function ReservationsPage() {
 
     setIsSubmitting(true);
     try {
-      const toLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const toISO = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const h = String(d.getHours()).padStart(2, "0");
+        return `${y}-${m}-${day}T${h}:00:00`;
+      };
+      
+      const diffMs = selectedEnd.getTime() - selectedStart.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      const finalPrice = formData.purpose === "business" ? 0 : Math.ceil(diffHours / 24) * 150;
+
       const updateData: Record<string, unknown> = {
-         date_start_planned: `${toLocalYMD(selectedStart)}T00:00:00`,
-         date_end_planned: `${toLocalYMD(selectedEnd)}T23:59:59`,
+         date_start_planned: toISO(selectedStart),
+         date_end_planned: toISO(selectedEnd),
          purpose: formData.purpose,
-         price: parseFloat(String(formData.price)) || 0
+         price: finalPrice
       };
 
       await reservationApi.update(panelReservation.reservation.id, updateData);
@@ -431,38 +487,38 @@ export default function ReservationsPage() {
         )}
 
         {error && (
-          <div className="glass-elevated rounded-[2.5rem] p-20 text-center border-red-500/10 max-w-2xl mx-auto mt-12">
-            <div className="flex flex-col items-center gap-6">
-              <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-red-500/10 text-red-500">
-                <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          <div className="glass-surface rounded-2xl p-12 text-center max-w-2xl mx-auto mt-6">
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold">Synchronizacja nieudana</h3>
-                <p className="text-gray-400">{error}</p>
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-white">Błąd synchronizacji</h3>
+                <p className="text-gray-400 text-sm">{error}</p>
               </div>
-              <button onClick={fetchData} className="btn-ghost px-8 border-white/5">Spróbuj ponownie</button>
+              <button onClick={fetchData} className="btn-ghost mt-2 px-8 border-white/5">Spróbuj ponownie</button>
             </div>
           </div>
         )}
 
         {!loading && !error && reservations.length === 0 && (
-          <div className="glass-elevated rounded-[3rem] p-24 text-center max-w-3xl mx-auto mt-12">
-            <div className="flex flex-col items-center gap-8">
+          <div className="glass-surface rounded-2xl p-12 text-center max-w-xl mx-auto mt-6">
+            <div className="flex flex-col items-center gap-4">
               <div className="relative">
-                <div className="absolute inset-0 bg-purple-500/20 blur-3xl rounded-full" />
-                <div className="relative flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white/5 border border-white/10 text-purple-400">
-                  <Image src="/assets/icons/icon-calendar-check.svg" alt="Calendar" width={48} height={48} />
+                <div className="absolute inset-0 bg-purple-500/10 blur-2xl rounded-full" />
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-purple-400">
+                  <Image src="/assets/icons/icon-calendar-check.svg" alt="Calendar" width={32} height={32} />
                 </div>
               </div>
-              <div className="space-y-3">
-                <h3 className="text-3xl font-black">Brak zaplanowanych tras</h3>
-                <p className="text-gray-400 text-lg max-w-md mx-auto leading-relaxed">
-                  Wygląda na to, że Twoja flota obecnie odpoczywa. Czas zaplanować kolejną podróż.
+              <div className="space-y-1">
+                <h3 className="text-xl font-black text-white">Brak zaplanowanych tras</h3>
+                <p className="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed font-medium">
+                  Twoja flota obecnie odpoczywa. Czas zaplanować kolejną podróż.
                 </p>
               </div>
-              <Link href="/dashboard/vehicles" className="btn-primary px-10 py-4 rounded-2xl text-base">
+              <Link href="/dashboard/vehicles" className="btn-primary mt-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest">
                 Przeglądaj dostępne auta
               </Link>
             </div>
@@ -644,17 +700,69 @@ export default function ReservationsPage() {
                    </div>
                 </div>
 
+                {/* Hourly Picker */}
+                {selectingTimeFor && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-purple-400">
+                        Wybierz godzinę {selectingTimeFor === "start" ? "rozpoczęcia" : "zakończenia"}
+                      </label>
+                      <button 
+                        onClick={() => setSelectingTimeFor(null)}
+                        className="text-[10px] font-bold text-white/40 hover:text-white transition-colors"
+                      >
+                        Anuluj
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const hourDate = new Date(selectingTimeFor === "start" ? selectedStart! : selectedEnd!);
+                        hourDate.setHours(i, 0, 0, 0);
+                        
+                        const isPast = hourDate < new Date();
+                        const isOccupied = existingReservations.some(r => {
+                           const s = new Date(r.date_start_planned);
+                           const e = new Date(r.date_end_planned);
+                           return hourDate >= s && hourDate < e;
+                        });
+                        const isSelected = selectingTimeFor === "start" 
+                           ? (selectedStart && selectedStart.getHours() === i)
+                           : (selectedEnd && selectedEnd.getHours() === i);
+
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            disabled={isPast || isOccupied}
+                            onClick={() => handleTimeClick(i)}
+                            className={`py-2.5 rounded-xl text-[10px] font-black transition-all border
+                              ${isPast || isOccupied 
+                                ? "bg-white/5 border-transparent text-white/10 cursor-not-allowed" 
+                                : "bg-white/5 border-white/5 text-white/60 hover:border-purple-500/50 hover:text-white"}
+                              ${isSelected ? "!bg-purple-500 !border-purple-500 !text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]" : ""}
+                            `}
+                          >
+                            {String(i).padStart(2, '0')}:00
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between px-2 pt-2">
                   <div className="flex flex-col">
                     <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Wybrany Okres</span>
                     <span className="text-xs font-bold text-white/80">
-                      {selectedStart ? selectedStart.toLocaleDateString('pl-PL') : "..." } — {selectedEnd ? selectedEnd.toLocaleDateString('pl-PL') : "..."}
+                      {selectedStart ? `${selectedStart.toLocaleDateString('pl-PL')} ${String(selectedStart.getHours()).padStart(2, '0')}:00` : "..." } — {selectedEnd ? `${selectedEnd.toLocaleDateString('pl-PL')} ${String(selectedEnd.getHours()).padStart(2, '0')}:00` : "..."}
                     </span>
                   </div>
                   <div className="text-right">
                     <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Łączny Koszt</span>
                     <div className="text-xl font-black text-white">
-                      {selectedStart && selectedEnd ? `${Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000*60*60*24))) * 150} PLN` : "—"}
+                      {selectedStart && selectedEnd 
+                        ? `${formData.purpose === "business" ? 0 : Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000*60*60*24))) * 150} PLN` 
+                        : "—"}
                     </div>
                   </div>
                 </div>

@@ -59,23 +59,12 @@ function dateFromYMD(y: number, m: number, d: number) {
   return new Date(y, m, d);
 }
 
-function normalizeDayStart(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-}
-
-function normalizeDayEnd(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
-}
-
 function doesRangeOverlap(start: Date, end: Date, reservations: ReservationPublic[]) {
   if (end <= start) return false;
-  const normalizedStart = normalizeDayStart(start);
-  const normalizedEnd = normalizeDayEnd(end);
-
   return reservations.some((reservation) => {
-    const reservationStart = normalizeDayStart(new Date(reservation.date_start_planned));
-    const reservationEnd = normalizeDayEnd(new Date(reservation.date_end_planned));
-    return normalizedStart <= reservationEnd && normalizedEnd >= reservationStart;
+    const reservationStart = new Date(reservation.date_start_planned);
+    const reservationEnd = new Date(reservation.date_end_planned);
+    return start < reservationEnd && end > reservationStart;
   });
 }
 
@@ -90,8 +79,6 @@ export default function VehiclesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [panelVehicle, setPanelVehicle] = useState<EnrichedVehicle | null>(null);
-  const [reserveStart, setReserveStart] = useState("");
-  const [reserveEnd, setReserveEnd] = useState("");
   const [reserving, setReserving] = useState(false);
   const [reservePurpose, setReservePurpose] = useState("business");
   const [existingReservations, setExistingReservations] = useState<ReservationPublic[]>([]);
@@ -102,6 +89,7 @@ export default function VehiclesPage() {
   });
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
   const [selectedEnd, setSelectedEnd] = useState<Date | null>(null);
+  const [selectingTimeFor, setSelectingTimeFor] = useState<"start" | "end" | null>(null);
 
   const { toast } = useToast();
 
@@ -157,11 +145,10 @@ export default function VehiclesPage() {
   
   const openPanel = async (ev: EnrichedVehicle) => {
     setPanelVehicle(ev);
-    setReserveStart("");
-    setReserveEnd("");
     setFieldErrors({});
     setSelectedStart(null);
     setSelectedEnd(null);
+    setSelectingTimeFor(null);
     setReservePurpose("business");
     const now = new Date();
     setCalendarMonth({ year: now.getFullYear(), month: now.getMonth() });
@@ -190,12 +177,14 @@ export default function VehiclesPage() {
 
 
   const blockedDates = useMemo(() => {
+    // We don't block the whole day anymore unless it's fully occupied
+    // But for the calendar UI, we can keep track of days that have *some* reservations
     const set = new Set<string>();
     for (const r of existingReservations) {
-      const start = normalizeDayStart(new Date(r.date_start_planned));
-      const end = normalizeDayEnd(new Date(r.date_end_planned));
-      const cur = new Date(start);
-      while (cur <= end) {
+      const s = new Date(r.date_start_planned);
+      const e = new Date(r.date_end_planned);
+      const cur = new Date(s);
+      while (cur <= e) {
         set.add(`${cur.getFullYear()}-${cur.getMonth()}-${cur.getDate()}`);
         cur.setDate(cur.getDate() + 1);
       }
@@ -206,76 +195,81 @@ export default function VehiclesPage() {
 
   const handleCalendarDayClick = (day: number) => {
     const d = dateFromYMD(calendarMonth.year, calendarMonth.month, day);
-    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    if (blockedDates.has(key)) return;
     if (d < new Date(new Date().setHours(0, 0, 0, 0))) return;
+
+    // Find first available hour
+    let firstAvailableHour = 0;
+    const now = new Date();
+    for (let h = 0; h < 24; h++) {
+      const checkDate = new Date(d);
+      checkDate.setHours(h, 0, 0, 0);
+      const isPast = checkDate < now;
+      const isOccupied = existingReservations.some(r => {
+        const s = new Date(r.date_start_planned);
+        const e = new Date(r.date_end_planned);
+        return checkDate >= s && checkDate < e;
+      });
+      if (!isPast && !isOccupied) {
+        firstAvailableHour = h;
+        break;
+      }
+    }
+    d.setHours(firstAvailableHour, 0, 0, 0);
 
     if (!selectedStart || (selectedStart && selectedEnd)) {
       setSelectedStart(d);
       setSelectedEnd(null);
-
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const hours = String(d.getHours()).padStart(2, "0");
-      const minutes = String(d.getMinutes()).padStart(2, "0");
-      setReserveStart(`${year}-${month}-${day}T${hours}:${minutes}`);
-
-      setReserveEnd("");
+      setSelectingTimeFor("start");
       setFieldErrors({});
     } else {
       if (d < selectedStart) {
         setSelectedStart(d);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        const hours = String(d.getHours()).padStart(2, "0");
-        const minutes = String(d.getMinutes()).padStart(2, "0");
-        setReserveStart(`${year}-${month}-${day}T${hours}:${minutes}`);
+        setSelectingTimeFor("start");
       } else {
-        const proposedStart = selectedStart;
-        const proposedEnd = d;
-        if (doesRangeOverlap(proposedStart, proposedEnd, existingReservations)) {
-          setFieldErrors({ range: "Wybrany termin jest już zajęty. Wybierz inny okres." });
-          return;
-        }
-
         setSelectedEnd(d);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        const hours = String(d.getHours()).padStart(2, "0");
-        const minutes = String(d.getMinutes()).padStart(2, "0");
-        setReserveEnd(`${year}-${month}-${day}T${hours}:${minutes}`);
-        setFieldErrors({});
+        setSelectingTimeFor("end");
       }
     }
   };
 
-  const isInRange = (day: number) => {
-    if (!selectedStart || !selectedEnd) return false;
-    const d = dateFromYMD(calendarMonth.year, calendarMonth.month, day);
-    return d > selectedStart && d < selectedEnd;
-  };
+  const handleTimeClick = (hour: number) => {
+    if (!selectingTimeFor) return;
 
-  const isSelected = (day: number) => {
-    const d = dateFromYMD(calendarMonth.year, calendarMonth.month, day);
-    return (selectedStart && sameDay(d, selectedStart)) || (selectedEnd && sameDay(d, selectedEnd));
-  };
+    if (selectingTimeFor === "start" && selectedStart) {
+      const newStart = new Date(selectedStart);
+      newStart.setHours(hour, 0, 0, 0);
+      setSelectedStart(newStart);
+      setSelectingTimeFor(null);
+    } else if (selectingTimeFor === "end" && selectedEnd) {
+      const newEnd = new Date(selectedEnd);
+      newEnd.setHours(hour, 0, 0, 0);
+      
+      if (selectedStart && newEnd <= selectedStart) {
+        setFieldErrors({ range: "Data zakończenia musi być późniejsza niż rozpoczęcia." });
+        return;
+      }
+      
+      if (selectedStart && doesRangeOverlap(selectedStart, newEnd, existingReservations)) {
+        setFieldErrors({ range: "Wybrany termin pokrywa się z istniejącą rezerwacją." });
+        return;
+      }
 
+      setSelectedEnd(newEnd);
+      setSelectingTimeFor(null);
+      setFieldErrors({});
+    }
+  };
 
   const handleReserve = async (e: React.FormEvent) => {
     e.preventDefault();
     const errors: Record<string, string> = {};
-    if (!reserveStart) errors.start = "Wybierz datę rozpoczęcia.";
-    if (!reserveEnd) errors.end = "Wybierz datę zakończenia.";
-    const startDate = reserveStart ? new Date(reserveStart) : null;
-    const endDate = reserveEnd ? new Date(reserveEnd) : null;
+    if (!selectedStart) errors.start = "Wybierz datę rozpoczęcia.";
+    if (!selectedEnd) errors.end = "Wybierz datę zakończenia.";
 
-    if (startDate && endDate && endDate < startDate) {
-      errors.end = "Data zakończenia musi być taka sama lub późniejsza niż data rozpoczęcia.";
+    if (selectedStart && selectedEnd && selectedEnd <= selectedStart) {
+      errors.end = "Data zakończenia musi być późniejsza niż data rozpoczęcia.";
     }
-    if (startDate && endDate && doesRangeOverlap(startDate, endDate, existingReservations)) {
+    if (selectedStart && selectedEnd && doesRangeOverlap(selectedStart, selectedEnd, existingReservations)) {
       errors.range = "Wybrany termin pokrywa się z istniejącą rezerwacją.";
     }
 
@@ -284,17 +278,24 @@ export default function VehiclesPage() {
     if (!panelVehicle) return;
 
     setReserving(true);
-    const days = (startDate && endDate) ? Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-    const finalPrice = reservePurpose === "business" ? 0 : days * 150;
+    const diffMs = selectedEnd!.getTime() - selectedStart!.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const finalPrice = reservePurpose === "business" ? 0 : Math.ceil(diffHours / 24) * 150;
 
     try {
       const user = await api.getCurrentUser();
-      const toLocalYMD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const toISO = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const h = String(d.getHours()).padStart(2, "0");
+        return `${y}-${m}-${day}T${h}:00:00`;
+      };
       await api.createReservation({
         vehicle_id: panelVehicle.vehicle.id,
         worker_id: user.id,
-        date_start_planned: `${toLocalYMD(startDate!)}T00:00:00`,
-        date_end_planned: `${toLocalYMD(endDate!)}T23:59:59`,
+        date_start_planned: toISO(selectedStart!),
+        date_end_planned: toISO(selectedEnd!),
         purpose: reservePurpose as "business" | "private",
         price: finalPrice,      
       });
@@ -330,48 +331,29 @@ export default function VehiclesPage() {
     for (let d = 1; d <= totalDays; d++) {
       const date = dateFromYMD(year, month, d);
       const key = `${year}-${month}-${d}`;
-      const blocked = blockedDates.has(key);
+      const hasReservation = blockedDates.has(key);
       const past = date < today;
-      const selected = isSelected(d);
-      const inRange = isInRange(d);
-      const candidateBlocking = !!(selectedStart && !selectedEnd && date > selectedStart && doesRangeOverlap(selectedStart, date, existingReservations));
+      const isStart = selectedStart && sameDay(date, selectedStart);
+      const isEnd = selectedEnd && sameDay(date, selectedEnd);
+      const selected = isStart || isEnd;
+      const inRange = selectedStart && selectedEnd && date > selectedStart && date < selectedEnd;
 
       cells.push(
         <button
           key={d}
           type="button"
-          disabled={blocked || past || candidateBlocking}
+          disabled={past}
           onClick={() => handleCalendarDayClick(d)}
-          className={`h-9 w-9 rounded-lg text-xs font-medium transition-all flex items-center justify-center
-            ${blocked || candidateBlocking
-              ? "line-through cursor-not-allowed"
-              : past
+          className={`h-9 w-9 rounded-lg text-xs font-medium transition-all flex flex-col items-center justify-center relative
+            ${past
                 ? "opacity-30 cursor-not-allowed"
-                : "hover:bg-white/10 cursor-pointer"}
-            ${selected ? "!text-white" : ""}
+                : "hover:bg-white/10 cursor-pointer text-white/70"}
+            ${selected ? "!text-white !bg-purple-500 shadow-[0_0_15px_rgba(139,92,246,0.5)]" : ""}
+            ${inRange ? "bg-purple-500/20 text-purple-300" : ""}
           `}
-          style={{
-            background: selected
-              ? "var(--color-accent)"
-              : inRange
-                ? "var(--color-accent-glow)"
-                : blocked || candidateBlocking
-                  ? "var(--color-error-soft)"
-                  : past
-                    ? "rgba(255,255,255,0.04)"
-                    : "transparent",
-            color: selected
-              ? "#fff"
-              : blocked || candidateBlocking
-                ? "var(--color-error)"
-                : inRange
-                  ? "var(--color-accent-soft)"
-                  : past
-                    ? "var(--color-text-secondary)"
-                    : "var(--color-text-secondary)",
-          }}
         >
           {d}
+          {hasReservation && !selected && <div className="absolute bottom-1 w-1 h-1 rounded-full bg-purple-400/50" />}
         </button>
       );
     }
@@ -604,19 +586,22 @@ export default function VehiclesPage() {
                  </div>
               </div>
 
-              <div className="space-y-6 pt-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Cel rezerwacji</label>
-                      <select
-                        className="input-dark bg-white/5 border-white/10 text-white rounded-xl py-3 px-4 w-full text-sm font-bold focus:border-purple-500/50 cursor-pointer appearance-none"
-                        value={reservePurpose}
-                        onChange={(e) => setReservePurpose(e.target.value)}
-                      >
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Cel rezerwacji</label>
+                    <select
+                      className="input-dark bg-white/5 border-white/10 text-white rounded-2xl py-4 w-full focus:border-purple-500/50"
+                      value={reservePurpose}
+                      onChange={(e) => setReservePurpose(e.target.value)}
+                    >
                       <option value="business" className="bg-[#0d0f14]">Służbowy (0 PLN)</option>
                       <option value="private" className="bg-[#0d0f14]">Prywatny (150 PLN / doba)</option>
-                      </select>
-                  </div>
+                    </select>
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-4">
+                <div className="flex items-center justify-between">
                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Kalendarz Rezerwacji</label>
                    <div className="flex items-center gap-2">
                       <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white">
@@ -636,40 +621,78 @@ export default function VehiclesPage() {
                       {DAYS_PL.map(d => <div key={d} className="text-[9px] font-black uppercase text-white/20 text-center">{d}</div>)}
                    </div>
                    <div className="grid grid-cols-7 gap-1">
-                      {/* Empty cells */}
                       {Array.from({ length: firstDayOfMonth(calendarMonth.year, calendarMonth.month) }).map((_, i) => (
                         <div key={`empty-${i}`} />
                       ))}
-                      {/* Day cells */}
-                      {Array.from({ length: daysInMonth(calendarMonth.year, calendarMonth.month) }).map((_, i) => {
-                        const day = i + 1;
-                        const date = dateFromYMD(calendarMonth.year, calendarMonth.month, day);
-                        const isReserved = existingReservations.some(r => {
-                          const s = new Date(r.date_start_planned);
-                          const e = new Date(r.date_end_planned);
-                          return date >= s && date <= e;
+                      {renderCalendar()}
+                   </div>
+                </div>
+
+                {/* Hourly Picker */}
+                {selectingTimeFor && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-purple-400">
+                        Wybierz godzinę {selectingTimeFor === "start" ? "rozpoczęcia" : "zakończenia"}
+                      </label>
+                      <button 
+                        onClick={() => setSelectingTimeFor(null)}
+                        className="text-[10px] font-bold text-white/40 hover:text-white transition-colors"
+                      >
+                        Anuluj
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const hourDate = new Date(selectingTimeFor === "start" ? selectedStart! : selectedEnd!);
+                        hourDate.setHours(i, 0, 0, 0);
+                        
+                        const isPast = hourDate < new Date();
+                        const isOccupied = existingReservations.some(r => {
+                           const s = new Date(r.date_start_planned);
+                           const e = new Date(r.date_end_planned);
+                           return hourDate >= s && hourDate < e;
                         });
-                        const isSelected = (selectedStart && sameDay(date, selectedStart)) || 
-                                           (selectedEnd && sameDay(date, selectedEnd)) ||
-                                           (selectedStart && selectedEnd && date > selectedStart && date < selectedEnd);
+                        const isSelected = selectingTimeFor === "start" 
+                           ? (selectedStart && selectedStart.getHours() === i)
+                           : (selectedEnd && selectedEnd.getHours() === i);
 
                         return (
                           <button
-                            key={day}
+                            key={i}
                             type="button"
-                            disabled={isReserved}
-                            onClick={() => handleCalendarDayClick(day)}
-                            className={`h-10 rounded-xl text-xs font-bold transition-all flex items-center justify-center relative group/day
-                              ${isReserved ? "text-white/10 cursor-not-allowed" : "text-white/70 hover:bg-purple-500/20 hover:text-white"}
-                              ${isSelected ? "bg-purple-500 !text-white shadow-[0_0_15px_rgba(139,92,246,0.5)]" : ""}
+                            disabled={isPast || isOccupied}
+                            onClick={() => handleTimeClick(i)}
+                            className={`py-2.5 rounded-xl text-[10px] font-black transition-all border
+                              ${isPast || isOccupied 
+                                ? "bg-white/5 border-transparent text-white/10 cursor-not-allowed" 
+                                : "bg-white/5 border-white/5 text-white/60 hover:border-purple-500/50 hover:text-white"}
+                              ${isSelected ? "!bg-purple-500 !border-purple-500 !text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]" : ""}
                             `}
                           >
-                            {day}
-                            {isReserved && <div className="absolute bottom-1 w-1 h-1 rounded-full bg-white/10" />}
+                            {String(i).padStart(2, '0')}:00
                           </button>
                         );
                       })}
-                   </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between px-2 pt-2">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Wybrany Okres</span>
+                    <span className="text-xs font-bold text-white/80">
+                      {selectedStart ? `${selectedStart.toLocaleDateString('pl-PL')} ${String(selectedStart.getHours()).padStart(2, '0')}:00` : "..." } — {selectedEnd ? `${selectedEnd.toLocaleDateString('pl-PL')} ${String(selectedEnd.getHours()).padStart(2, '0')}:00` : "..."}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Łączny Koszt</span>
+                    <div className="text-xl font-black text-white">
+                      {selectedStart && selectedEnd 
+                      ? `${reservePurpose === "business" ? 0 : Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000*60*60*24))) * 150} PLN` 
+                      : "—"}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
