@@ -20,6 +20,7 @@ class Purpose_enum(StrEnum):
 
     BUSINESS = "business"
     PRIVATE = "private"
+    SERVICE = "service"
 
 
 class Reservation_state_enum(StrEnum):
@@ -51,6 +52,7 @@ class Reservation(Base):
 
     state_start: Mapped[Optional[str]] = mapped_column(String(350), nullable=True)
     state_end: Mapped[Optional[str]] = mapped_column(String(350), nullable=True)
+    service_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
 
     vehicle_id: Mapped[int] = mapped_column(ForeignKey("vehicle.id", ondelete="RESTRICT"), nullable=False)
     worker_id: Mapped[int] = mapped_column(
@@ -72,6 +74,7 @@ class ReservationBase(BaseModel):
     purpose: Purpose_enum
     vehicle_id: int
     worker_id: int
+    service_name: Optional[str] = None
 
 
 class ReservationCreate(ReservationBase):
@@ -95,6 +98,7 @@ class ReservationUpdate(BaseModel):
     state: Optional[Reservation_state_enum] = None
     state_start: Optional[str] = None
     state_end: Optional[str] = None
+    service_name: Optional[str] = None
 
     @field_validator("date_start", "date_end", "date_start_planned", "date_end_planned")
     @classmethod

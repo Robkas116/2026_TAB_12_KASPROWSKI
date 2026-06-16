@@ -1,13 +1,14 @@
-export type Purpose = "business" | "private";
+export type Purpose = "business" | "private" | "service";
 export type ReservationState = "created" | "accepted" | "in_progress" | "completed" | "canceled";
 
 export interface ReservationBase {
-    date_start_planned: string; 
+    date_start_planned: string;
     date_end_planned: string;
     price: number;
     purpose: Purpose;
-    vehicle_id: number | ""; 
+    vehicle_id: number | "";
     worker_id: number | "";
+    service_name?: string | null;
 }
 
 export interface ReservationPublic extends ReservationBase {
@@ -33,6 +34,7 @@ export interface ReservationUpdate {
     state?: ReservationState | null;
     state_start?: string | null;
     state_end?: string | null;
+    service_name?: string | null;
 }
 
 export interface ReservationsPublic {

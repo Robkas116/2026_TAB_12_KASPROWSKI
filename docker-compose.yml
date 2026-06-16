@@ -7,6 +7,9 @@ services:
       - "8000:8000"
     environment:
       - SECRET_KEY=dev_secret_key_change_me_in_production
+      - DEFAULT_ADMIN_EMAIL=admin@fleet.pl
+      - DEFAULT_ADMIN_PASSWORD=admin123
+      - DEFAULT_ADMIN_NAME=Administrator
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app

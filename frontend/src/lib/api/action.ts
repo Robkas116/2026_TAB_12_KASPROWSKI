@@ -12,7 +12,8 @@ export const actionApi = {
 			`${API_URL}/action/?skip=${skip}&limit=${limit}`,
 		);
 		if (!response.ok) throw new Error(`Action GET Error: ${response.status}`);
-		return response.json();
+		const result: { data: ActionPublic[]; count: number } = await response.json();
+		return { items: result.data, total: result.count, skip, limit };
 	},
 
 	create: async (data: ActionCreate): Promise<ActionPublic> => {

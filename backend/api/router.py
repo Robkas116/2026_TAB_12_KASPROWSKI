@@ -11,6 +11,7 @@ from api.routes import (
     vehicle_endpoints,
     worker_endpoints,
     caretaker_endpoints,
+    caretaker_panel_endpoints,
     is_performed_endpoints,
     reservation_endpoints,
 )
@@ -26,5 +27,6 @@ api_router.include_router(action_endpoints.router)
 api_router.include_router(vehicle_endpoints.router)
 api_router.include_router(worker_endpoints.router)
 api_router.include_router(caretaker_endpoints.router)
+api_router.include_router(caretaker_panel_endpoints.router)
 api_router.include_router(is_performed_endpoints.router)
 api_router.include_router(reservation_endpoints.router)

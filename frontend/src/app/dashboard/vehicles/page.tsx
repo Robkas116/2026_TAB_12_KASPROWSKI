@@ -8,14 +8,23 @@ import { vehmodelApi } from "@/lib/api/vehmodel";
 import { makeApi } from "@/lib/api/make";
 import { caretakerApi } from "@/lib/api/caretaker";
 import { workerApi } from "@/lib/api/worker";
-import { setofequipmentApi } from "@/lib/api/set_of_equipment";
+import { versionApi } from "@/lib/api/version";
 import { reservationApi } from "@/lib/api/reservation";
 import { useToast } from "@/components/ui/Toast";
+import {
+  daysInMonth,
+  firstDayOfMonth,
+  sameDay,
+  dateFromYMD,
+  doesRangeOverlap,
+  MONTHS_PL,
+  DAYS_PL,
+} from "@/lib/calendar";
 import type { VehiclePublic } from "@/types/vehicle_types";
 import type { VehModelPublic } from "@/types/vehmodel_types";
 import type { MakePublic } from "@/types/make_types";
 import type { CaretakerPublic } from "@/types/caretaker_types";
-import type { SetOfEquipmentPublic } from "@/types/set_of_equipment_types";
+import type { VersionPublic } from "@/types/version_types";
 import type { WorkerPublic } from "@/types/worker_types";
 import type { ReservationPublic } from "@/types/reservation_types";
 
@@ -24,7 +33,7 @@ interface EnrichedVehicle {
   makeName: string;
   modelName: string;
   caretaker: { caretaker: CaretakerPublic; worker: WorkerPublic | null } | null;
-  equipment: SetOfEquipmentPublic | null;
+  versionName: string;
 }
 
 const CAR_COLORS = [
@@ -42,37 +51,6 @@ function carGradient(index: number) {
   return CAR_COLORS[index % CAR_COLORS.length];
 }
 
-
-function daysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
-}
-
-function firstDayOfMonth(year: number, month: number) {
-  return new Date(year, month, 1).getDay(); // 0=Sun
-}
-
-function sameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function dateFromYMD(y: number, m: number, d: number) {
-  return new Date(y, m, d);
-}
-
-function doesRangeOverlap(start: Date, end: Date, reservations: ReservationPublic[]) {
-  if (end <= start) return false;
-  return reservations.some((reservation) => {
-    const reservationStart = new Date(reservation.date_start_planned);
-    const reservationEnd = new Date(reservation.date_end_planned);
-    return start < reservationEnd && end > reservationStart;
-  });
-}
-
-const MONTHS_PL = [
-  "Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec",
-  "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień",
-];
-const DAYS_PL = ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "So"];
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<EnrichedVehicle[]>([]);
@@ -97,36 +75,36 @@ export default function VehiclesPage() {
     setLoading(true);
     setError(null);
     try {
-      const [vehResp, modelResp, makeResp, ctResp, workerResp, equipResp] = await Promise.all([
+      const [vehResp, modelResp, makeResp, ctResp, workerResp, versionResp] = await Promise.all([
         vehicleApi.getAll(),
         vehmodelApi.getAll(),
         makeApi.getAll(),
         caretakerApi.getAll(),
         workerApi.getAll(),
-        setofequipmentApi.getAll(),
+        versionApi.getAll(),
       ]);
 
-     
+
       const vehicleItems: VehiclePublic[] = vehResp.items || [];
       const models: VehModelPublic[] = (modelResp as unknown as { data: VehModelPublic[]; count: number }).data || [];
       const makes: MakePublic[] = (makeResp as unknown as { data: MakePublic[]; count: number }).data || [];
       const caretakers: CaretakerPublic[] = ctResp.data || [];
       const workers: WorkerPublic[] = workerResp.data || [];
-      const equipments: SetOfEquipmentPublic[] = (equipResp as unknown as { data: SetOfEquipmentPublic[]; count: number }).data || [];
+      const versions: VersionPublic[] = (versionResp as unknown as { data: VersionPublic[]; count: number }).data || [];
 
       const enriched: EnrichedVehicle[] = vehicleItems.map((v) => {
         const model = models.find((m) => m.id === v.veh_model_id);
         const make = model ? makes.find((mk) => mk.id === model.make_id) : null;
         const ct = caretakers.find((c) => c.vehicle_id === v.id) || null;
         const worker = ct ? workers.find((w) => w.id === ct.worker_id) || null : null;
-        const eq = equipments.find((e) => e.version_id === v.version_id) || null;
+        const version = versions.find((ver) => ver.id === v.version_id);
 
         return {
           vehicle: v,
           makeName: make?.name || "Nieznana marka",
           modelName: model?.name || "Nieznany model",
           caretaker: ct ? { caretaker: ct, worker } : null,
-          equipment: eq,
+          versionName: version?.destination || "Brak wersji",
         };
       });
 
@@ -473,7 +451,7 @@ export default function VehiclesPage() {
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
-                    Wersja: {ev.equipment?.name || "Brak pakietu"}
+                    Wersja: {ev.versionName}
                   </p>
                 </div>
 
@@ -545,7 +523,7 @@ export default function VehiclesPage() {
                 <div className="space-y-2">
                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Lokalizacja</label>
                    <div className="bg-white/5 rounded-2xl p-4 text-sm font-bold text-white/80 border border-white/5">
-                      Polska, Centrala
+                      Polska
                    </div>
                 </div>
                 <div className="space-y-2">
@@ -557,32 +535,11 @@ export default function VehiclesPage() {
               </div>
 
               <div className="space-y-4">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Wyposażenie i Pakiety</label>
-                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">
-                    <div>
-                      <h4 className="font-bold text-white mb-1">
-                        {panelVehicle.equipment?.name || "Brak przypisanego pakietu"}
-                      </h4>
-                      <p className="text-xs text-gray-400 leading-relaxed">
-                        {panelVehicle.equipment 
-                          ? "Pojazd posiada przypisaną wersję wyposażenia zawierającą poniższe elementy:" 
-                          : "Do tego pojazdu nie przypisano żadnej wersji wyposażenia."}
-                      </p>
-                    </div>
-                    {panelVehicle.equipment?.equipments && panelVehicle.equipment.equipments.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        {panelVehicle.equipment.equipments.map((eq) => (
-                          <span key={eq.id} className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs font-semibold text-purple-300 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                            {eq.name}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      panelVehicle.equipment && (
-                        <p className="text-xs text-gray-500 italic pt-1">Ten pakiet nie zawiera jeszcze żadnych elementów wyposażenia.</p>
-                      )
-                    )}
+                 <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Wersja pojazdu</label>
+                 <div className="bg-white/5 rounded-3xl p-6 border border-white/5">
+                    <h4 className="font-bold text-white">
+                      {panelVehicle.versionName}
+                    </h4>
                  </div>
               </div>
 

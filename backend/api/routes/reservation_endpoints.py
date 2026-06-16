@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from crud import reservation_crud
+from crud import reservation_crud, is_performed_crud
 from database.database import get_db
 from models.reservation_model import (
     ReservationCreate,
     ReservationPublic,
     ReservationUpdate,
     ReservationsPublic,
+)
+from models.is_performed_model import (
+    IsPerformedCreate,
+    IsPerformedPublic,
 )
 
 router = APIRouter(prefix="/reservation", tags=["Reservations"])
@@ -59,6 +63,7 @@ def get_reservations(
     Returns:
         A list of reservations along with the total count.
     """
+    reservation_crud.auto_transition_reservations(session=db)
     return reservation_crud.get_all_reservations(
         session=db, skip=skip, limit=limit, worker_id=worker_id
     )
@@ -152,3 +157,40 @@ def delete_reservation(reservation_id: int, db: Session = Depends(get_db)):
 
     reservation_crud.delete_reservation(session=db, db_reservation=reservation)
     return {"message": "reservation deleted succesfully"}
+
+
+@router.post(
+    "/{reservation_id}/request-exploitation",
+    response_model=IsPerformedPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+def request_exploitation(
+    reservation_id: int,
+    exploitation_in: IsPerformedCreate,
+    db: Session = Depends(get_db),
+):
+    """Worker requests an exploitation action after completing a reservation.
+
+    Creates an IsPerformed record linking an exploitation action to the reservation.
+    """
+    reservation = reservation_crud.get_reservation_by_id(
+        session=db, reservation_id=reservation_id
+    )
+    if not reservation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Reservation with ID {reservation_id} not found.",
+        )
+
+    # Force reservation_id from path
+    exploitation_in.reservation_id = reservation_id
+
+    try:
+        return is_performed_crud.create_is_performed(
+            session=db, is_performed_in=exploitation_in
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )

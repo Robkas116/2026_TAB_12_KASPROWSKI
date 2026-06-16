@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "../layout";
 import { makeApi } from "@/lib/api/make";
 import { vehicleApi } from "@/lib/api/vehicle";
 import { actionApi } from "@/lib/api/action";
@@ -31,6 +33,18 @@ function extractItems(data: unknown): Record<string, unknown>[] {
 }
 
 export default function Dashboard() {
+    const user = useUser();
+    const router = useRouter();
+
+    // Block non-superusers
+    useEffect(() => {
+        if (user && !user.is_superuser) {
+            router.replace("/dashboard");
+        }
+    }, [user, router]);
+
+    if (!user || !user.is_superuser) return null;
+
     const [activeTab, setActiveTab] = useState<EntityType>("Makes");
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(false);

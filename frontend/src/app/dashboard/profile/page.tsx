@@ -160,11 +160,8 @@ export default function ProfilePage() {
 											{user?.name || "Kierowca Nienazwany"}
 										</h4>
 										<div className="flex flex-wrap justify-center sm:justify-start gap-3">
-											<span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest text-purple-300">
-												ID: #{user?.id.toString().padStart(4, '0')}
-											</span>
 											<span className="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest text-blue-300">
-												Aktywny
+												Szerokiej drogi!
 											</span>
 										</div>
 									</div>

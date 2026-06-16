@@ -52,7 +52,7 @@ export default function EditModal({
   }, [initialData]);
 
   useEffect(() => {
-    if (entityType !== "Set_Of_Equipment") return;
+    if (entityType !== "Set_Of_Equipment" && entityType !== "Vehicles") return;
     const fetchVersions = async () => {
       setLoadingVersions(true);
       try {

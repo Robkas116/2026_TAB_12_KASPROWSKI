@@ -10,6 +10,16 @@ import { vehmodelApi } from "@/lib/api/vehmodel";
 import { makeApi } from "@/lib/api/make";
 import { workerApi } from "@/lib/api/worker";
 import { useToast } from "@/components/ui/Toast";
+import ExploitationRequestModal from "@/components/modals/ExploitationRequestModal";
+import {
+  daysInMonth,
+  firstDayOfMonth,
+  sameDay,
+  dateFromYMD,
+  doesRangeOverlap,
+  MONTHS_PL,
+  DAYS_PL,
+} from "@/lib/calendar";
 import type { ReservationPublic } from "@/types/reservation_types";
 import type { VehiclePublic } from "@/types/vehicle_types";
 import type { VehModelPublic } from "@/types/vehmodel_types";
@@ -89,34 +99,6 @@ const PURPOSE_OPTIONS = [
 const HIDDEN_FIELDS = new Set(["id", "state", "state_start", "state_end", "date_start", "date_end", "vehicle_id", "worker_id", "distance"]);
 const EDITABLE_FIELDS = new Set(["date_start_planned", "date_end_planned", "price", "purpose", "vehicle_id", "worker_id"]);
 
-const MONTHS_PL = [
-  "Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec",
-  "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień",
-];
-const DAYS_PL = ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "So"];
-
-function daysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
-}
-function firstDayOfMonth(year: number, month: number) {
-  return new Date(year, month, 1).getDay();
-}
-function sameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-function dateFromYMD(y: number, m: number, d: number) {
-  return new Date(y, m, d);
-}
-
-function doesRangeOverlap(start: Date, end: Date, reservations: ReservationPublic[]) {
-  if (end <= start) return false;
-  return reservations.some((reservation) => {
-    const reservationStart = new Date(reservation.date_start_planned);
-    const reservationEnd = new Date(reservation.date_end_planned);
-    return start < reservationEnd && end > reservationStart;
-  });
-}
-
 export default function ReservationsPage() {
   const [reservations, setReservations] = useState<EnrichedReservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +118,7 @@ export default function ReservationsPage() {
   const [selectedStart, setSelectedStart] = useState<Date | null>(null);
   const [selectedEnd, setSelectedEnd] = useState<Date | null>(null);
   const [selectingTimeFor, setSelectingTimeFor] = useState<"start" | "end" | null>(null);
+  const [exploitationModal, setExploitationModal] = useState<{ id: number; name: string } | null>(null);
 
   const { toast } = useToast();
 
@@ -593,6 +576,31 @@ export default function ReservationsPage() {
                       </div>
                     </div>
 
+                    {/* Exploitation request trigger - separate row (div to avoid button-in-button) */}
+                    {(er.reservation.state === "in_progress" || er.reservation.state === "completed") && (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExploitationModal({ id: er.reservation.id, name: `${er.makeName} ${er.modelName}` });
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setExploitationModal({ id: er.reservation.id, name: `${er.makeName} ${er.modelName}` });
+                          }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl bg-amber-500/5 text-amber-400 border border-amber-500/15 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        Zgłoś eksploatację
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between pt-2">
                       <div className="flex items-center gap-3 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5">
                         <Image
@@ -801,6 +809,15 @@ export default function ReservationsPage() {
           </div>
         </div>
       )}
+
+      {/* Exploitation Request Modal */}
+      <ExploitationRequestModal
+        reservationId={exploitationModal?.id || 0}
+        vehicleName={exploitationModal?.name || ""}
+        open={exploitationModal !== null}
+        onClose={() => setExploitationModal(null)}
+        toast={toast}
+      />
     </div>
   );
 }

@@ -42,3 +42,22 @@ def get_current_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+def verify_caretaker_of_vehicle(
+    vehicle_id: int,
+    current_user: Worker,
+    db: Session,
+) -> None:
+    """Verify that the current user is an active caretaker of the given vehicle.
+    Raises HTTPException 403 if not.
+    """
+    from crud import caretaker_crud
+
+    if not caretaker_crud.is_worker_caretaker_for_vehicle(
+        session=db, worker_id=current_user.id, vehicle_id=vehicle_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nie jesteś opiekunem tego pojazdu.",
+        )

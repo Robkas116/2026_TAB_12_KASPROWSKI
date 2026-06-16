@@ -33,7 +33,7 @@ export default function AddModal({
   }, [isOpen, initialState]);
 
   useEffect(() => {
-    if (!isOpen || entityType !== "Set_Of_Equipment") return;
+    if (!isOpen || (entityType !== "Set_Of_Equipment" && entityType !== "Vehicles")) return;
     const fetchVersions = async () => {
       setLoadingVersions(true);
       try {

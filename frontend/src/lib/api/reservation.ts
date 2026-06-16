@@ -55,6 +55,19 @@ export const reservationApi = {
         return response.json();
     },
 
+    requestExploitation: async (reservationId: number, data: { action_id: number; price: number; date: string; state: string }) => {
+        const response = await fetch(`${API_URL}/reservation/${reservationId}/request-exploitation`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...data, reservation_id: reservationId }),
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Błąd zgłaszania eksploatacji.");
+        }
+        return response.json();
+    },
+
     delete: async (id: number) => {
         const response = await fetch(`${API_URL}/reservation/${id}`, {
             method: "DELETE",

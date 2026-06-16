@@ -20,7 +20,7 @@ export const OPTIONAL_FIELDS: Record<EntityType, Set<string>> = {
 	Vehicles: new Set(["description"]),
 	Models: new Set(),
 	Caretakers: new Set(["date_end"]), // date_end can be null for active caretakers
-	Reservations: new Set(["distance", "date_start", "date_end", "state", "state_start", "state_end"]),
+	Reservations: new Set(["distance", "date_start", "date_end", "state", "state_start", "state_end", "service_name"]),
 	Actions: new Set(),
 	Equipments: new Set(),
 	SetOfEquipments: new Set(),

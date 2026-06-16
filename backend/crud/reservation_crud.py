@@ -10,6 +10,9 @@ from models.reservation_model import (
     ReservationsPublic,
     Reservation_state_enum,
 )
+from models.is_performed_model import IsPerformed
+from models.action_model import Action
+from models.worker_model import Worker
 
 
 def _has_overlapping_reservation(
@@ -171,6 +174,74 @@ def update_reservation(
     return db_reservation
 
 
+def auto_transition_reservations(*, session: Session) -> int:
+    """Auto-transition reservation states based on current time:
+    - created -> in_progress when date_start_planned has passed
+    - in_progress -> completed when date_end_planned has passed
+    Returns the number of reservations updated.
+    """
+    from datetime import datetime as dt
+
+    now = dt.now()
+    updated = 0
+
+    # Transition: created -> in_progress (start date passed)
+    started = list(
+        session.scalars(
+            select(Reservation).where(
+                Reservation.state == Reservation_state_enum.CREATED,
+                Reservation.date_start_planned <= now,
+            )
+        ).all()
+    )
+    for r in started:
+        r.state = Reservation_state_enum.IN_PROGRESS
+        session.add(r)
+        updated += 1
+
+    # Transition: in_progress -> completed (end date passed)
+    completed = list(
+        session.scalars(
+            select(Reservation).where(
+                Reservation.state == Reservation_state_enum.IN_PROGRESS,
+                Reservation.date_end_planned <= now,
+            )
+        ).all()
+    )
+    for r in completed:
+        r.state = Reservation_state_enum.COMPLETED
+        session.add(r)
+        updated += 1
+
+    if updated:
+        session.commit()
+    return updated
+
+
+def auto_complete_services(*, session: Session) -> int:
+    """Mark service reservations as completed when their end date has passed.
+    Returns the number of reservations updated.
+    """
+    from datetime import datetime as dt
+
+    now = dt.now()
+    statement = (
+        select(Reservation)
+        .where(
+            Reservation.purpose == "service",
+            Reservation.state == Reservation_state_enum.CREATED,
+            Reservation.date_end_planned <= now,
+        )
+    )
+    expired = list(session.scalars(statement).all())
+    for r in expired:
+        r.state = Reservation_state_enum.COMPLETED
+        session.add(r)
+    if expired:
+        session.commit()
+    return len(expired)
+
+
 def delete_reservation(*, session: Session, db_reservation: Reservation) -> None:
     """Deletes a reservation record from the database.
 
@@ -184,3 +255,53 @@ def delete_reservation(*, session: Session, db_reservation: Reservation) -> None
     session.delete(db_reservation)
     session.commit()
     return None
+
+
+def get_reservations_for_vehicle(
+    *, session: Session, vehicle_id: int, skip: int = 0, limit: int = 100
+) -> ReservationsPublic:
+    """Get all reservations for a specific vehicle, ordered by start date desc."""
+    count_statement = (
+        select(func.count())
+        .select_from(Reservation)
+        .where(Reservation.vehicle_id == vehicle_id)
+    )
+    statement = (
+        select(Reservation)
+        .where(Reservation.vehicle_id == vehicle_id)
+        .order_by(Reservation.date_start_planned.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    total_count = session.scalar(count_statement) or 0
+    reservations = list(session.scalars(statement).all())
+    return ReservationsPublic(data=reservations, count=total_count)
+
+
+def get_exploitations_for_vehicle(
+    *, session: Session, vehicle_id: int, skip: int = 0, limit: int = 100
+) -> list:
+    """Get all exploitation IsPerformed records for a vehicle's reservations.
+    Returns raw tuples: (IsPerformed, Action.name, Reservation.date_start_planned,
+                         Reservation.date_end_planned, Worker.name)
+    """
+    statement = (
+        select(
+            IsPerformed,
+            Action.name,
+            Reservation.date_start_planned,
+            Reservation.date_end_planned,
+            Worker.name,
+        )
+        .join(Action, IsPerformed.action_id == Action.id)
+        .join(Reservation, IsPerformed.reservation_id == Reservation.id)
+        .join(Worker, Reservation.worker_id == Worker.id)
+        .where(
+            Reservation.vehicle_id == vehicle_id,
+            Action.type == "exploitation",
+        )
+        .order_by(IsPerformed.date.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    return list(session.execute(statement).all())

@@ -14,6 +14,7 @@ import {
 import OnboardingTour from "@/components/OnboardingTour";
 import { ToastProvider } from "@/components/ui/Toast";
 import { api, subscribeToAuthChanges } from "@/lib/api";
+import { caretakerPanelApi } from "@/lib/api/caretaker_panel";
 import type { WorkerPublic } from "@/types/worker_types";
 
 const UserContext = createContext<WorkerPublic | null>(null);
@@ -25,6 +26,7 @@ export default function DashboardLayout({
 	children: React.ReactNode;
 }) {
 	const [user, setUser] = useState<WorkerPublic | null>(null);
+	const [isCaretaker, setIsCaretaker] = useState(false);
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const [showTour, setShowTour] = useState(false);
 	const router = useRouter();
@@ -66,6 +68,18 @@ export default function DashboardLayout({
 		return unsubscribe;
 	}, [fetchUser]);
 
+	// Check if current user is a caretaker for any vehicle
+	useEffect(() => {
+		if (!user) {
+			setIsCaretaker(false);
+			return;
+		}
+		caretakerPanelApi
+			.getMyVehicles()
+			.then((vehicles) => { console.log("[caretaker] found", vehicles.length, "vehicles"); setIsCaretaker(vehicles.length > 0); })
+			.catch((err) => { console.error("[caretaker] error:", err); setIsCaretaker(false); });
+	}, [user]);
+
 	const handleLogout = () => {
 		api.logout();
 	};
@@ -93,6 +107,13 @@ export default function DashboardLayout({
 		!navLinks.some((link) => link.href.includes("admin"))
 	) {
 		navLinks.push({ href: "/dashboard/admin", label: "Panel Admina" });
+
+		if (
+			isCaretaker &&
+			!navLinks.some((link) => link.href.includes("caretaker"))
+		) {
+			navLinks.splice(2, 0, { href: "/dashboard/caretaker", label: "Twoje Pojazdy" });
+		}
 	}
 
 	if (!user) {
@@ -172,7 +193,7 @@ export default function DashboardLayout({
 								</svg>
 							</div>
 							<span
-								className="text-lg font-bold tracking-tight"
+								className="hidden sm:inline text-lg font-bold tracking-tight"
 								style={{ color: "var(--color-text-primary)" }}
 							>
 								Fleet<span style={{ color: "var(--color-accent-soft)" }}>Manager</span>
@@ -180,7 +201,7 @@ export default function DashboardLayout({
 						</Link>
 
 						{/* Desktop nav links */}
-						<div className="hidden md:flex items-center gap-1">
+						<div className="hidden lg:flex items-center gap-1">
 							{navLinks.map((link) => {
 								const isActive = link.exact
 									? pathname === link.href
@@ -213,9 +234,9 @@ export default function DashboardLayout({
 
 						{/* User section */}
 						<div className="flex items-center gap-4">
-							<Link 
+							<Link
 								href="/dashboard/profile"
-								className="flex items-center gap-3 pl-2 pr-4 py-2 rounded-full bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all group/user shadow-lg"
+								className="hidden sm:flex items-center gap-3 pl-2 pr-4 py-2 rounded-full bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] hover:border-white/20 transition-all group/user shadow-lg"
 							>
 								<div
 									className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-black shadow-xl shadow-purple-500/30 group-hover/user:scale-105 transition-transform"
@@ -238,10 +259,29 @@ export default function DashboardLayout({
 
 							<div className="h-5 w-px bg-white/10 mx-1 hidden sm:block" />
 
+							{/* Caretaker quick-access button */}
+							{isCaretaker && (
+								<Link
+									href="/dashboard/caretaker"
+									className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border"
+									style={{
+										background: "rgba(6,182,212,0.1)",
+										borderColor: "rgba(6,182,212,0.25)",
+										color: "#22d3ee",
+									}}
+								>
+									<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+										<path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+									</svg>
+									<span className="hidden lg:inline">Opiekun</span>
+								</Link>
+							)}
+
 							<button
 								type="button"
 								onClick={handleLogout}
-								className="btn-ghost !px-4 !py-2 !text-xs font-black uppercase tracking-widest text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all border-none"
+								className="hidden sm:inline-flex btn-ghost !px-4 !py-2 !text-xs font-black uppercase tracking-widest text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all border-none"
 							>
 								Wyloguj
 							</button>
@@ -250,7 +290,7 @@ export default function DashboardLayout({
 							<button
 								type="button"
 								onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-								className="md:hidden p-2 rounded-lg"
+								className="lg:hidden p-2 rounded-lg"
 								style={{ color: "var(--color-text-secondary)" }}
 								aria-label="Toggle menu"
 							>
@@ -293,10 +333,30 @@ export default function DashboardLayout({
 
 					{/* Mobile menu */}
 					{mobileMenuOpen && (
-						<div
-							className="md:hidden border-t py-3 space-y-1"
+						<div className="lg:hidden border-t py-3 space-y-1 max-h-[70vh] overflow-y-auto"
 							style={{ borderColor: "var(--color-border)" }}
 						>
+							{/* User info header */}
+							<div className="px-3 py-2 flex items-center gap-3 mb-2">
+								<div
+									className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-black shrink-0"
+									style={{
+										background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+										color: "white",
+									}}
+								>
+									{user.name?.charAt(0).toUpperCase()}
+								</div>
+								<div className="flex flex-col leading-tight min-w-0">
+									<span className="text-sm font-black text-white truncate">{user.name}</span>
+									<span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+										{user.is_superuser ? "Administrator" : "Pracownik"}
+									</span>
+								</div>
+							</div>
+
+							<div className="h-px bg-white/5 mx-3 mb-1" />
+
 							{navLinks.map((link) => {
 								const isActive = link.exact
 									? pathname === link.href
@@ -318,6 +378,16 @@ export default function DashboardLayout({
 									</Link>
 								);
 							})}
+
+							<div className="h-px bg-white/5 mx-3 mt-1" />
+
+							<button
+								type="button"
+								onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+								className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-rose-400 hover:bg-rose-500/10"
+							>
+								Wyloguj
+							</button>
 						</div>
 					)}
 				</div>

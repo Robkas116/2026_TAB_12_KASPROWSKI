@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
-import { useUser } from "./layout"; 
+import { useUser } from "./layout";
+import { caretakerPanelApi } from "@/lib/api/caretaker_panel";
 
 const tiles = [
   {
@@ -46,6 +48,36 @@ export default function DashboardPage() {
 
   const isSuperUser = user?.is_superuser || false;
 
+  const [isCaretaker, setIsCaretaker] = useState(false);
+  const [caretakerVehicleCount, setCaretakerVehicleCount] = useState(0);
+
+  useEffect(() => {
+    caretakerPanelApi
+      .getMyVehicles()
+      .then((vehicles) => {
+        setIsCaretaker(vehicles.length > 0);
+        setCaretakerVehicleCount(vehicles.length);
+      })
+      .catch(() => setIsCaretaker(false));
+  }, []);
+
+  const caretakerTile = {
+    title: "Twoje Pojazdy",
+    description: `Zarządzaj ${caretakerVehicleCount} pojazd${caretakerVehicleCount === 1 ? "em" : "ami"}, których jesteś opiekunem.`,
+    href: "/dashboard/caretaker",
+    gradient: "from-cyan-600/20 to-blue-500/5",
+    icon: (
+      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    ),
+  };
+
+  const displayTiles = isCaretaker
+    ? [tiles[0], caretakerTile, ...tiles.slice(1)]
+    : tiles;
+
   return (
     <div className="space-y-10 relative z-10 py-4">
       {/* Nagłówek */}
@@ -85,7 +117,7 @@ export default function DashboardPage() {
 
       {/* Kafki */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {tiles.map((tile) => (
+        {displayTiles.map((tile) => (
           <Link
             key={tile.href}
             href={tile.href}

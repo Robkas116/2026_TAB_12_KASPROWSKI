@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 from sqlalchemy import ForeignKey, Integer, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pydantic import BaseModel, ConfigDict, Field
@@ -9,6 +9,8 @@ from database.database import Base
 
 from models.worker_model import Worker
 from models.vehicle_model import Vehicle
+from models.reservation_model import Purpose_enum, Reservation_state_enum
+from models.is_performed_model import State
 
 
 class Caretaker(Base):
@@ -58,4 +60,64 @@ class CaretakerPublic(CaretakerBase):
 
 class CaretakersPublic(BaseModel):
     data: list[CaretakerPublic]
+    count: int
+
+
+# --- Caretaker Panel response models ---
+
+class VehicleWithMake(BaseModel):
+    id: int
+    description: Optional[str] = None
+    make_name: str
+    model_name: str
+    version_name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VehiclesWithMakePublic(BaseModel):
+    data: list[VehicleWithMake]
+    count: int
+
+
+class PanelReservationPublic(BaseModel):
+    """Reservation with worker name for caretaker display."""
+    id: int
+    date_start_planned: datetime
+    date_end_planned: datetime
+    price: float
+    distance: Optional[float] = None
+    purpose: Purpose_enum
+    date_start: Optional[datetime] = None
+    date_end: Optional[datetime] = None
+    state: Reservation_state_enum
+    state_start: Optional[str] = None
+    state_end: Optional[str] = None
+    service_name: Optional[str] = None
+    vehicle_id: int
+    worker_id: int
+    worker_name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PanelReservationsPublic(BaseModel):
+    data: list[PanelReservationPublic]
+    count: int
+
+
+class PanelExploitationPublic(BaseModel):
+    id: int
+    price: int
+    date: date
+    state: State
+    action_id: int
+    action_name: str
+    reservation_id: int
+    reservation_start: datetime
+    reservation_end: datetime
+    worker_name: str
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PanelExploitationsPublic(BaseModel):
+    data: list[PanelExploitationPublic]
     count: int
