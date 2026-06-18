@@ -27,9 +27,7 @@ class Version(Base):
     destination: Mapped[str] = mapped_column(String(100), nullable=False)
 
     sets: Mapped[List["SetOfEquipment"]] = relationship(back_populates="version")
-    vehicle: Mapped[Optional["Vehicle"]] = relationship(
-        back_populates="version", uselist=False
-    )
+    vehicles: Mapped[list["Vehicle"]] = relationship(back_populates="version")
 
 
 class VersionBase(BaseModel):

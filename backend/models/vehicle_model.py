@@ -23,14 +23,14 @@ class Vehicle(Base):
         ForeignKey("vehmodel.id", ondelete="RESTRICT"), nullable=False
     )
     version_id: Mapped[int] = mapped_column(
-        ForeignKey("version.id", ondelete="RESTRICT"), nullable=False, unique=True
+        ForeignKey("version.id", ondelete="RESTRICT"), nullable=False
     )
 
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     veh_model: Mapped["VehModel"] = relationship(back_populates="vehicles")
-    version: Mapped["Version"] = relationship(back_populates="vehicle")
-    caretakers: Mapped["Caretaker"] = relationship(back_populates="vehicle")
+    version: Mapped["Version"] = relationship(back_populates="vehicles")
+    caretakers: Mapped[list["Caretaker"]] = relationship(back_populates="vehicle")
     reservations: Mapped[list["Reservation"]] = relationship(back_populates="vehicle")
 
 
