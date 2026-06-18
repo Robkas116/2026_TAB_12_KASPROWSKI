@@ -3,6 +3,9 @@ import { OPTIONAL_FIELDS } from "@/lib/forms";
 import { versionApi } from "@/lib/api/version";
 import { makeApi } from "@/lib/api/make";
 import { vehmodelApi } from "@/lib/api/vehmodel";
+import { vehicleApi } from "@/lib/api/vehicle";
+import { actionApi } from "@/lib/api/action";
+import { workerApi } from "@/lib/api/worker";
 import type { EntityType } from "@/types";
 
 interface AddModalProps {
@@ -29,6 +32,12 @@ export default function AddModal({
   const [loadingMakes, setLoadingMakes] = useState(false);
   const [vehmodels, setVehmodels] = useState<Array<{ id: number; name: string }>>([]);
   const [loadingVehmodels, setLoadingVehmodels] = useState(false);
+  const [vehicles, setVehicles] = useState<Array<{ id: number; description?: string }>>([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(false);
+  const [actions, setActions] = useState<Array<{ id: number; name: string }>>([]);
+  const [loadingActions, setLoadingActions] = useState(false);
+  const [workers, setWorkers] = useState<Array<{ id: number; name: string }>>([]);
+  const [loadingWorkers, setLoadingWorkers] = useState(false);
 
   useEffect(() => {
     if (isOpen && initialState) {
@@ -87,6 +96,57 @@ export default function AddModal({
       }
     };
     fetchVehmodels();
+  }, [isOpen, entityType]);
+
+  useEffect(() => {
+    if (!isOpen || entityType !== "IsPerformed") return;
+    const fetchActions = async () => {
+      setLoadingActions(true);
+      try {
+        const result = await actionApi.getAll();
+        const items = Array.isArray(result) ? result : (result as any)?.items || (result as any)?.data || [];
+        setActions(items);
+      } catch {
+        setActions([]);
+      } finally {
+        setLoadingActions(false);
+      }
+    };
+    fetchActions();
+  }, [isOpen, entityType]);
+
+  useEffect(() => {
+    if (!isOpen || (entityType !== "Caretakers" && entityType !== "Reservations")) return;
+    const fetchWorkers = async () => {
+      setLoadingWorkers(true);
+      try {
+        const result = await workerApi.getAll();
+        const items = Array.isArray(result) ? result : (result as any)?.data || [];
+        setWorkers(items);
+      } catch {
+        setWorkers([]);
+      } finally {
+        setLoadingWorkers(false);
+      }
+    };
+    fetchWorkers();
+  }, [isOpen, entityType]);
+
+  useEffect(() => {
+    if (!isOpen || (entityType !== "Reservations" && entityType !== "Caretakers")) return;
+    const fetchVehicles = async () => {
+      setLoadingVehicles(true);
+      try {
+        const result = await vehicleApi.getAll();
+        const items = Array.isArray(result) ? result : (result as any)?.items || (result as any)?.data || [];
+        setVehicles(items);
+      } catch {
+        setVehicles([]);
+      } finally {
+        setLoadingVehicles(false);
+      }
+    };
+    fetchVehicles();
   }, [isOpen, entityType]);
 
   useEffect(() => {
@@ -230,7 +290,7 @@ export default function AddModal({
                     name={field}
                     value={formData[field] || "business"}
                     onChange={handleChange}
-                    className={`input-dark ${hasError ? "input-error" : ""}`}
+                    className={`cursor-pointer input-dark ${hasError ? "input-error" : ""}`}
                     required={!isOptional}
                   >
                     <option value="business">Biznesowy</option>
@@ -242,7 +302,7 @@ export default function AddModal({
                     name={field}
                     value={formData[field] || "created"}
                     onChange={handleChange}
-                    className={`input-dark ${hasError ? "input-error" : ""}`}
+                    className={`cursor-pointer input-dark ${hasError ? "input-error" : ""}`}
                     required={!isOptional}
                   >
                     <option value="created">Utworzona</option>
@@ -250,6 +310,18 @@ export default function AddModal({
                     <option value="in_progress">W trakcie</option>
                     <option value="completed">Zakończona</option>
                     <option value="canceled">Anulowana</option>
+                  </select>
+                ) : field === "type" ? (
+                  <select
+                    id={`add-${field}`}
+                    name={field}
+                    value={formData[field] || "service"}
+                    onChange={handleChange}
+                    className={`cursor-pointer input-dark ${hasError ? "input-error" : ""}`}
+                    required={!isOptional}
+                  >
+                    <option value="service">Serwisowy</option>
+                    <option value="exploitation">Eksploatacyjny</option>
                   </select>
                 ) : field === "version_id" ? (
                   <div className="relative">
@@ -259,7 +331,7 @@ export default function AddModal({
                       value={formData[field] || ""}
                       onChange={handleChange}
                       disabled={loadingVersions}
-                      className={`w-full px-4 py-2.5 rounded-lg appearance-none cursor-pointer transition-all font-medium text-sm pr-10 ${hasError ? "input-error" : "input-dark"}`}
+                      className={`cursor-pointer w-full px-4 py-2.5 rounded-lg appearance-none cursor-pointer transition-all font-medium text-sm pr-10 ${hasError ? "input-error" : "input-dark"}`}
                       style={{
                         background: "var(--color-input-bg)",
                         color: "var(--color-text-primary)",
@@ -346,6 +418,114 @@ export default function AddModal({
                       {vehmodels.map((vm) => (
                         <option key={vm.id} value={vm.id} className="bg-gray-900 text-white">
                           {vm.name}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-all"
+                      style={{ color: "var(--color-text-secondary)" }}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </div>
+                ) : field === "vehicle_id" ? (
+                  <div className="relative">
+                    <select
+                      id={`add-${field}`}
+                      name={field}
+                      value={formData[field] || ""}
+                      onChange={handleChange}
+                      disabled={loadingVehicles}
+                      className={`w-full px-4 py-2.5 rounded-lg appearance-none cursor-pointer transition-all font-medium text-sm pr-10 ${hasError ? "input-error" : "input-dark"}`}
+                      style={{
+                        background: "var(--color-input-bg)",
+                        color: "var(--color-text-primary)",
+                        border: `1px solid var(--color-border)`,
+                        maxHeight: "200px",
+                      }}
+                      required={!isOptional}
+                    >
+                      <option value="" className="bg-gray-900 text-white">
+                        Wybierz pojazd...
+                      </option>
+                      {vehicles.map((v) => (
+                        <option key={v.id} value={v.id} className="bg-gray-900 text-white">
+                          {v.description ? `${v.id} - ${v.description}` : `Pojazd ${v.id}`}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-all"
+                      style={{ color: "var(--color-text-secondary)" }}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </div>
+                ) : field === "action_id" ? (
+                  <div className="relative">
+                    <select
+                      id={`add-${field}`}
+                      name={field}
+                      value={formData[field] || ""}
+                      onChange={handleChange}
+                      disabled={loadingActions}
+                      className={`w-full px-4 py-2.5 rounded-lg appearance-none cursor-pointer transition-all font-medium text-sm pr-10 ${hasError ? "input-error" : "input-dark"}`}
+                      style={{
+                        background: "var(--color-input-bg)",
+                        color: "var(--color-text-primary)",
+                        border: `1px solid var(--color-border)`,
+                        maxHeight: "200px",
+                      }}
+                      required={!isOptional}
+                    >
+                      <option value="" className="bg-gray-900 text-white">
+                        Wybierz akcję...
+                      </option>
+                      {actions.map((a) => (
+                        <option key={a.id} value={a.id} className="bg-gray-900 text-white">
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-all"
+                      style={{ color: "var(--color-text-secondary)" }}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </div>
+                ) : field === "worker_id" ? (
+                  <div className="relative">
+                    <select
+                      id={`add-${field}`}
+                      name={field}
+                      value={formData[field] || ""}
+                      onChange={handleChange}
+                      disabled={loadingWorkers}
+                      className={`w-full px-4 py-2.5 rounded-lg appearance-none cursor-pointer transition-all font-medium text-sm pr-10 ${hasError ? "input-error" : "input-dark"}`}
+                      style={{
+                        background: "var(--color-input-bg)",
+                        color: "var(--color-text-primary)",
+                        border: `1px solid var(--color-border)`,
+                        maxHeight: "200px",
+                      }}
+                      required={!isOptional}
+                    >
+                      <option value="" className="bg-gray-900 text-white">
+                        Wybierz pracownika...
+                      </option>
+                      {workers.map((w) => (
+                        <option key={w.id} value={w.id} className="bg-gray-900 text-white">
+                          {w.name}
                         </option>
                       ))}
                     </select>
