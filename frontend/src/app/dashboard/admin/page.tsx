@@ -7,7 +7,7 @@ import { makeApi } from "@/lib/api/make";
 import { vehicleApi } from "@/lib/api/vehicle";
 import { actionApi } from "@/lib/api/action";
 import { reservationApi } from "@/lib/api/reservation";
-import { vehmodelApi } from "@/lib/api/vehmodel"; 
+import { vehmodelApi } from "@/lib/api/vehmodel";
 import { caretakerApi } from "@/lib/api/caretaker";
 import { equipmentApi } from "@/lib/api/equipment";
 import { setofequipmentApi } from "@/lib/api/set_of_equipment";
@@ -23,13 +23,13 @@ import RemoveEquipmentFromSetModal from "@/components/modals/RemoveEquipmentFrom
 import DataTable from "@/components/DataTable";
 import { isPerformedApi } from "@/lib/api/is_performed";
 
-type EntityType = "Makes" |  "Models"| "Equipment" | "Set_Of_Equipment" | "Versions" | "Vehicles"  | "Workers" | "Caretakers" | "Reservations" | "Actions" | "IsPerformed" ;
+type EntityType = "Makes" | "Models" | "Equipment" | "Set_Of_Equipment" | "Versions" | "Vehicles" | "Workers" | "Caretakers" | "Reservations" | "Actions" | "IsPerformed";
 
 function extractItems(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[];
-  if (data && typeof data === "object" && "items" in data) return (data as Record<string, unknown>).items as Record<string, unknown>[];
-  if (data && typeof data === "object" && "data" in data) return (data as Record<string, unknown>).data as Record<string, unknown>[];
-  return [];
+    if (Array.isArray(data)) return data as Record<string, unknown>[];
+    if (data && typeof data === "object" && "items" in data) return (data as Record<string, unknown>).items as Record<string, unknown>[];
+    if (data && typeof data === "object" && "data" in data) return (data as Record<string, unknown>).data as Record<string, unknown>[];
+    return [];
 }
 
 export default function Dashboard() {
@@ -62,7 +62,6 @@ export default function Dashboard() {
 
     const loadData = async (entity: EntityType) => {
         setLoading(true);
-        setError(null);
         setData(null);
 
         try {
@@ -74,7 +73,7 @@ export default function Dashboard() {
                 case "Models":
                     result = await vehmodelApi.getAll();
                     break;
-              
+
                 case "Equipment":
                     result = await equipmentApi.getAll();
                     break;
@@ -93,7 +92,7 @@ export default function Dashboard() {
                 case "Caretakers":
                     result = await caretakerApi.getAll();
                     break;
-                    case "Reservations":
+                case "Reservations":
                     result = await reservationApi.getAll();
                     break;
                 case "Actions":
@@ -102,11 +101,11 @@ export default function Dashboard() {
                 case "IsPerformed":
                     result = await isPerformedApi.getAll();
                     break;
-               
-               }
+
+            }
             setData(result);
         } catch (err: any) {
-            setError(err.message || "Nie udało się pobrać danych z bazy.");
+            alert(err.message || "There was a problem fetching data from the server.");
         } finally {
             setLoading(false);
         }
@@ -116,35 +115,34 @@ export default function Dashboard() {
         loadData(activeTab);
     }, [activeTab]);
 
-const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
+    const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
         setSaving(true);
-        setError(null);
         try {
-            const preparedData: Record<string, any> = { ...normalizedData};
+            const preparedData: Record<string, any> = { ...normalizedData };
 
-            Object.keys(preparedData).forEach((key)=>{
+            Object.keys(preparedData).forEach((key) => {
                 const value = preparedData[key];
-                if(typeof value === "string"){
-                    if(key.endsWith("_id")){
+                if (typeof value === "string") {
+                    if (key.endsWith("_id")) {
                         preparedData[key] = value.trim() !== "" ? Number(value) : null;
                     }
-                    if(key === "price" || key === "distance"){
+                    if (key === "price" || key === "distance") {
                         preparedData[key] = value.trim() !== "" ? Number(value) : 0;
                     }
-                    if(key === "date_start" || key === "date"){
-                        preparedData[key] = value.trim() !== "" ? value.substring(0,10): null;
+                    if (key === "date_start" || key === "date") {
+                        preparedData[key] = value.trim() !== "" ? value.substring(0, 10) : null;
                     }
                 }
-                
+
             });
             switch (activeTab) {
                 case "Makes":
-                   
+
                     await makeApi.create(normalizedData as any);
                     break;
-                
+
                 case "Models":
-                   
+
                     await vehmodelApi.create(normalizedData as any);
                     break;
 
@@ -164,10 +162,10 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
                     await vehicleApi.create(normalizedData as any);
                     break;
 
-               
+
                 case "Workers":
                     await workerApi.create(normalizedData as any);
-                    break;  
+                    break;
 
                 case "Caretakers":
                     await caretakerApi.create(normalizedData as any);
@@ -186,34 +184,34 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
 
             }
 
-           
-            setIsAddModalOpen(false); 
-            await loadData(activeTab); 
+
+            setIsAddModalOpen(false);
+            await loadData(activeTab);
         } catch (err: any) {
-            
-            setError(err.message || "Wystąpił błąd podczas dodawania rekordu.");
+
+            alert(err.message || "There was a problem while adding the record.");
         } finally {
             setSaving(false);
         }
     };
 
 
-    const tabs: EntityType[] = ["Makes","Models","Equipment", "Set_Of_Equipment", "Versions","Vehicles","Workers", "Caretakers", "Reservations", "Actions", "IsPerformed" ];
+    const tabs: EntityType[] = ["Makes", "Models", "Equipment", "Set_Of_Equipment", "Versions", "Vehicles", "Workers", "Caretakers", "Reservations", "Actions", "IsPerformed"];
 
-   
+
     const getSingularLabel = (entity: EntityType) => {
         if (entity === "Makes") return "Markę";
         if (entity === "Models") return "Model";
-        if(entity === "Equipment") return "Wyposażenie";
-        if(entity === "Set_Of_Equipment") return "Zestaw Wyposażenia";
-        if(entity === "Versions") return "Wersję";
+        if (entity === "Equipment") return "Wyposażenie";
+        if (entity === "Set_Of_Equipment") return "Zestaw Wyposażenia";
+        if (entity === "Versions") return "Wersję";
         if (entity === "Vehicles") return "Pojazd";
         if (entity === "Workers") return "Pracownika";
         if (entity === "Caretakers") return "Opiekuna pojazdu";
         if (entity === "Reservations") return "Rezerwację";
         if (entity === "Actions") return "Akcję";
         if (entity === "IsPerformed") return "Stan akcji";
-       
+
         return entity;
     };
 
@@ -269,7 +267,7 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
             }
             await loadData(activeTab);
         } catch (err: any) {
-            setError(err.message || "Nie udało się usunąć rekordu.");
+            alert(err.message || "Deleting the record failed.");
         } finally {
             setSaving(false);
         }
@@ -284,7 +282,7 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
             setSelectedSetId(null);
             await loadData(activeTab);
         } catch (err: any) {
-            setError(err.message || "Nie udało się dodać wyposażenia.");
+            alert(err.message || "There was a problem while adding the equipment to the set.");
         } finally {
             setSaving(false);
         }
@@ -300,7 +298,7 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
             setEquipmentInSelectedSet([]);
             await loadData(activeTab);
         } catch (err: any) {
-            setError(err.message || "Nie udało się usunąć wyposażenia.");
+            alert(err.message || "There was a problem while removing the equipment from the set.");
         } finally {
             setSaving(false);
         }
@@ -350,7 +348,7 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
             setItemToEdit(null);
             await loadData(activeTab);
         } catch (err: any) {
-            setError(err.message || "Nie udało się zaktualizować rekordu.");
+            alert(err.message || "There was a problem while updating the record.");
         } finally {
             setSaving(false);
         }
@@ -370,7 +368,7 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
                 </h2>
             </div>
 
-            
+
             <div className="flex flex-wrap gap-2 border-b pb-2" style={{ borderColor: "var(--color-border)" }}>
                 {tabs.map((tab) => {
                     const isActive = activeTab === tab;
@@ -379,11 +377,10 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             // DODANE: cursor-pointer na samym początku klas (kolejność nie ma znaczenia, ale ułatwia czytanie)
-                            className={`cursor-pointer px-5 py-2.5 rounded-xl text-sm font-bold tracking-tight transition-all duration-300 hover:-translate-y-px ${
-                                isActive
+                            className={`cursor-pointer px-5 py-2.5 rounded-xl text-sm font-bold tracking-tight transition-all duration-300 hover:-translate-y-px ${isActive
                                     ? "text-white shadow-lg"
-                                    : "hover:text-white hover:bg-white/10" 
-                            }`}
+                                    : "hover:text-white hover:bg-white/10"
+                                }`}
                             style={{
                                 color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)",
                                 background: isActive ? "var(--color-overlay)" : undefined,
@@ -396,10 +393,10 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
                 })}
             </div>
 
-           
+
             <div className="glass-elevated rounded-[2rem] p-6 sm:p-8 border border-white/5 relative overflow-hidden min-h-[400px]">
-                
-                
+
+
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b border-white/5">
                     <h3 className="text-lg font-black text-white tracking-tight">
                         Przeglądasz: <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">{activeTab}</span>
@@ -419,7 +416,7 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
                 {/* Stan Ładowania */}
                 {loading && (
                     <div className="flex items-center gap-3 py-12 justify-center" style={{ color: "var(--color-accent-soft)" }}>
-                        <div 
+                        <div
                             className="w-6 h-6 border-2 animate-spin rounded-full"
                             style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }}
                         />
@@ -430,7 +427,7 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
                 {/* Komunikat o błędzie */}
                 {error && (
                     <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-sm font-medium my-4">
-                        <span className="font-bold">Błąd połączenia:</span> {error}
+                        <span className="font-bold">Error:</span> {error}
                     </div>
                 )}
 
@@ -472,18 +469,18 @@ const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
                 onSuccess={handleAddSubmit}
                 initialState={
                     activeTab === "Makes" ? { name: "" } :
-                    activeTab === "Models" ? { name: "", make_id: "" } :
-                    activeTab === "Equipment" ? { name: ""} :
-                    activeTab === "Set_Of_Equipment" ? { name: "", version_id: ""} :
-                    activeTab === "Versions" ? { destination: ""} :
-                    activeTab === "Vehicles" ? { veh_model_id: "", version_id: "", description: "" } :
-                    activeTab === "Workers" ? { name: "", email: "", password: "" } :
-                    activeTab === "Caretakers" ? { worker_id: "", vehicle_id: "", date_start: "" } :
-                    
-                    activeTab === "Reservations" ? { date_start_planned: "", date_end_planned: "", price: "", purpose: "business",  vehicle_id: "", worker_id: ""  } :
-                    activeTab === "Actions" ? { name: "", type: "service" } :
-                    activeTab === "IsPerformed" ? { action_id: "", reservation_id: "", price: "", date: "", state: "awaiting"} :
-                    { name: "" }
+                        activeTab === "Models" ? { name: "", make_id: "" } :
+                            activeTab === "Equipment" ? { name: "" } :
+                                activeTab === "Set_Of_Equipment" ? { name: "", version_id: "" } :
+                                    activeTab === "Versions" ? { destination: "" } :
+                                        activeTab === "Vehicles" ? { veh_model_id: "", version_id: "", description: "" } :
+                                            activeTab === "Workers" ? { name: "", email: "", password: "" } :
+                                                activeTab === "Caretakers" ? { worker_id: "", vehicle_id: "", date_start: "" } :
+
+                                                    activeTab === "Reservations" ? { date_start_planned: "", date_end_planned: "", price: "", purpose: "business", vehicle_id: "", worker_id: "" } :
+                                                        activeTab === "Actions" ? { name: "", type: "service" } :
+                                                            activeTab === "IsPerformed" ? { action_id: "", reservation_id: "", price: "", date: "", state: "awaiting" } :
+                                                                { name: "" }
                 }
             />
 
