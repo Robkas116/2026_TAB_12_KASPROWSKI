@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { OPTIONAL_FIELDS } from "@/lib/forms";
 import { versionApi } from "@/lib/api/version";
+import { makeApi } from "@/lib/api/make";
+import { vehmodelApi } from "@/lib/api/vehmodel";
 import type { EntityType } from "@/types";
 
 interface AddModalProps {
@@ -23,6 +25,10 @@ export default function AddModal({
   const [submitted, setSubmitted] = useState(false);
   const [versions, setVersions] = useState<Array<{ id: number; destination: string }>>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
+  const [makes, setMakes] = useState<Array<{ id: number; name: string }>>([]);
+  const [loadingMakes, setLoadingMakes] = useState(false);
+  const [vehmodels, setVehmodels] = useState<Array<{ id: number; name: string }>>([]);
+  const [loadingVehmodels, setLoadingVehmodels] = useState(false);
 
   useEffect(() => {
     if (isOpen && initialState) {
@@ -50,6 +56,40 @@ export default function AddModal({
   }, [isOpen, entityType]);
 
   useEffect(() => {
+    if (!isOpen || entityType !== "Models") return;
+    const fetchMakes = async () => {
+      setLoadingMakes(true);
+      try {
+        const result = await makeApi.getAll();
+        const items = Array.isArray(result) ? result : (result as any)?.data || [];
+        setMakes(items);
+      } catch {
+        setMakes([]);
+      } finally {
+        setLoadingMakes(false);
+      }
+    };
+    fetchMakes();
+  }, [isOpen, entityType]);
+
+  useEffect(() => {
+    if (!isOpen || entityType !== "Vehicles") return;
+    const fetchVehmodels = async () => {
+      setLoadingVehmodels(true);
+      try {
+        const result = await vehmodelApi.getAll();
+        const items = Array.isArray(result) ? result : (result as any)?.data || [];
+        setVehmodels(items);
+      } catch {
+        setVehmodels([]);
+      } finally {
+        setLoadingVehmodels(false);
+      }
+    };
+    fetchVehmodels();
+  }, [isOpen, entityType]);
+
+  useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -64,8 +104,8 @@ export default function AddModal({
   const optionalFieldsForEntity = OPTIONAL_FIELDS[entityType as EntityType] || new Set();
 
   const getInputType = (field: string) => {
-    if (field=== "date_start" || field === "date_end" || field === "date") return "date";
-    if(field.includes("date")) return "datetime-local";
+    if (field === "date_start" || field === "date_end" || field === "date") return "date";
+    if (field.includes("date")) return "datetime-local";
     if (field === "price" || field.endsWith("_id") || field === "distance") return "number";
     return "text";
   };
@@ -142,9 +182,9 @@ export default function AddModal({
       {/* Backdrop click to close */}
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
-      <div 
-          className="rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto"
-          style={{ backgroundColor: "var(--color-background, #111827)" }}
+      <div
+        className="rounded-2xl w-full max-w-md p-6 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto"
+        style={{ backgroundColor: "var(--color-background, #111827)" }}
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -234,6 +274,78 @@ export default function AddModal({
                       {versions.map((v) => (
                         <option key={v.id} value={v.id} className="bg-gray-900 text-white">
                           {v.destination}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-all"
+                      style={{ color: "var(--color-text-secondary)" }}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </div>
+                ) : field === "make_id" ? (
+                  <div className="relative">
+                    <select
+                      id={`add-${field}`}
+                      name={field}
+                      value={formData[field] || ""}
+                      onChange={handleChange}
+                      disabled={loadingMakes}
+                      className={`w-full px-4 py-2.5 rounded-lg appearance-none cursor-pointer transition-all font-medium text-sm pr-10 ${hasError ? "input-error" : "input-dark"}`}
+                      style={{
+                        background: "var(--color-input-bg)",
+                        color: "var(--color-text-primary)",
+                        border: `1px solid var(--color-border)`,
+                        maxHeight: "200px",
+                      }}
+                      required={!isOptional}
+                    >
+                      <option value="" className="bg-gray-900 text-white">
+                        Wybierz markę...
+                      </option>
+                      {makes.map((m) => (
+                        <option key={m.id} value={m.id} className="bg-gray-900 text-white">
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none transition-all"
+                      style={{ color: "var(--color-text-secondary)" }}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </div>
+                ) : field === "veh_model_id" ? (
+                  <div className="relative">
+                    <select
+                      id={`add-${field}`}
+                      name={field}
+                      value={formData[field] || ""}
+                      onChange={handleChange}
+                      disabled={loadingVehmodels}
+                      className={`w-full px-4 py-2.5 rounded-lg appearance-none cursor-pointer transition-all font-medium text-sm pr-10 ${hasError ? "input-error" : "input-dark"}`}
+                      style={{
+                        background: "var(--color-input-bg)",
+                        color: "var(--color-text-primary)",
+                        border: `1px solid var(--color-border)`,
+                        maxHeight: "200px",
+                      }}
+                      required={!isOptional}
+                    >
+                      <option value="" className="bg-gray-900 text-white">
+                        Wybierz model...
+                      </option>
+                      {vehmodels.map((vm) => (
+                        <option key={vm.id} value={vm.id} className="bg-gray-900 text-white">
+                          {vm.name}
                         </option>
                       ))}
                     </select>
