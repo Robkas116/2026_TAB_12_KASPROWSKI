@@ -25,7 +25,7 @@ class IsPerformed(Base):
     __tablename__ = "is_performed"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    price: Optional[Mapped[int]] = mapped_column(Integer, nullable=False)
+    price: Mapped[int] = mapped_column(Integer, nullable=False)
     date: Mapped[dt_date] = mapped_column(Date, nullable=False)
     state: Mapped[State] = mapped_column(Enum(State), nullable=False)
     action_id: Mapped[int] = mapped_column(Integer, ForeignKey("action.id", ondelete="RESTRICT"), nullable=False)

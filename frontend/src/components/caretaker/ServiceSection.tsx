@@ -253,7 +253,7 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
     if (!selectedStart) errors.start = "Wybierz datę rozpoczęcia.";
     if (!selectedEnd) errors.end = "Wybierz datę zakończenia.";
     if (!selectedActionId && !editingService) errors.action = "Wybierz czynność serwisową.";
-    // if (!editingService && price <= 0) errors.price = "Cena musi być większa od 0.";
+    if (!editingService && price < 0) errors.price = "Cena musi być większa lub równa 0.";
     if (selectedStart && selectedEnd && selectedEnd <= selectedStart) {
       errors.end = "Data zakończenia musi być późniejsza niż rozpoczęcia.";
     }
@@ -288,7 +288,7 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
         await isPerformedApi.create({
           action_id: selectedActionId!,
           reservation_id: reservationId,
-          price,
+          price: price ? Number(price) : 0,
           date: toISODateString(selectedStart!).split('T')[0],
           state: State.AWAITING,
         });
