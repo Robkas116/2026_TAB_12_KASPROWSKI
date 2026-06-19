@@ -62,7 +62,7 @@ class Reservation(Base):
     vehicle: Mapped["Vehicle"] = relationship(back_populates="reservations")
     worker: Mapped["Worker"] = relationship(back_populates="reservations")
     # Relationship to IsPerformed
-    is_performeds: Mapped[list["IsPerformed"]] = relationship("IsPerformed", back_populates="reservation")
+    is_performeds: Mapped[list["IsPerformed"]] = relationship("IsPerformed", back_populates="reservation", cascade="all, delete-orphan")
 
 
 class ReservationBase(BaseModel):

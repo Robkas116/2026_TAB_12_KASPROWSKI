@@ -96,6 +96,8 @@ class PanelReservationPublic(BaseModel):
     vehicle_id: int
     worker_id: int
     worker_name: str
+    is_performed_state: Optional[State] = None
+    is_performed_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 

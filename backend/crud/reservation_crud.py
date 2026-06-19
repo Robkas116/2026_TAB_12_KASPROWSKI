@@ -166,8 +166,37 @@ def update_reservation(
             "Wybrany termin rezerwacji pokrywa się z istniejącą rezerwacją dla tego pojazdu."
         )
 
+    # Reset state to CREATED if dates are changed and state is not explicitly updated
+    if "state" not in update_data:
+        has_date_changes = False
+        if "date_start_planned" in update_data and update_data["date_start_planned"] != db_reservation.date_start_planned:
+            has_date_changes = True
+        if "date_end_planned" in update_data and update_data["date_end_planned"] != db_reservation.date_end_planned:
+            has_date_changes = True
+            
+        if has_date_changes:
+            db_reservation.state = Reservation_state_enum.CREATED
+
     for field, value in update_data.items():
         setattr(db_reservation, field, value)
+
+    # Sync performance state if it is a service reservation
+    from models.reservation_model import Purpose_enum
+    if db_reservation.purpose in (Purpose_enum.SERVICE, "service"):
+        from models.is_performed_model import IsPerformed, State as IsPerformedState
+        ips = session.scalars(
+            select(IsPerformed).where(IsPerformed.reservation_id == db_reservation.id)
+        ).all()
+        for ip in ips:
+            if db_reservation.state == Reservation_state_enum.CANCELED:
+                ip.state = IsPerformedState.CANCELED
+            elif db_reservation.state == Reservation_state_enum.CREATED:
+                ip.state = IsPerformedState.AWAITING
+            elif db_reservation.state == Reservation_state_enum.IN_PROGRESS:
+                ip.state = IsPerformedState.PERFORMED
+            elif db_reservation.state == Reservation_state_enum.COMPLETED:
+                ip.state = IsPerformedState.COMPLETED
+            session.add(ip)
 
     session.add(db_reservation)
     session.commit()

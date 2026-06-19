@@ -30,6 +30,8 @@ export interface PanelReservationPublic {
   vehicle_id: number;
   worker_id: number;
   worker_name: string;
+  is_performed_state?: State | null;
+  is_performed_id?: number | null;
 }
 
 export interface PanelReservationsPublic {

@@ -17,6 +17,7 @@ class State(StrEnum):
     AWAITING = "awaiting"
     PERFORMED = "performed"
     COMPLETED = "completed"
+    CANCELED = "canceled"
 
 
 class IsPerformed(Base):

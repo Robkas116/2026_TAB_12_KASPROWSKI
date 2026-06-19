@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { caretakerPanelApi } from "@/lib/api/caretaker_panel";
 import { actionApi } from "@/lib/api/action";
 import { isPerformedApi } from "@/lib/api/is_performed";
+import { reservationApi } from "@/lib/api/reservation";
 import { State } from "@/types/is_performed_types";
+import { API_URL } from "@/lib/api/config";
 import {
   daysInMonth,
   firstDayOfMonth,
@@ -19,7 +21,6 @@ import type { PanelReservationPublic } from "@/types/caretaker_panel_types";
 import type { ReservationPublic } from "@/types/reservation_types";
 import type { ActionType } from "@/types/action_types";
 
-
 interface ServiceSectionProps {
   vehicleId: number;
   toast: (type: "success" | "error", message: string) => void;
@@ -32,6 +33,9 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
   // --- Panel state ---
   const [showPanel, setShowPanel] = useState(false);
   const [editingService, setEditingService] = useState<PanelReservationPublic | null>(null);
+  const [cancelingId, setCancelingId] = useState<number | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // --- Calendar state (identical to vehicles page) ---
   const now = new Date();
@@ -45,6 +49,9 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
   const [existingReservations, setExistingReservations] = useState<ReservationPublic[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [updatingIsPerformedId, setUpdatingIsPerformedId] = useState<number | null>(null);
+  const [perfState, setPerfState] = useState<State>(State.AWAITING);
 
   // --- Service name ---
   const [serviceName, setServiceName] = useState("");
@@ -126,6 +133,8 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
     setCalendarMonth({ year: now.getFullYear(), month: now.getMonth() });
     fetchCalendarData();
     setShowPanel(true);
+    setShowDeleteConfirm(false);
+    setPerfState(State.AWAITING);
   };
 
   const openEditPanel = (svc: PanelReservationPublic) => {
@@ -142,11 +151,27 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
     setCalendarMonth({ year: start.getFullYear(), month: start.getMonth() });
     fetchCalendarData();
     setShowPanel(true);
+    setShowDeleteConfirm(false);
+    setPerfState(svc.is_performed_state || State.AWAITING);
+
+    if (svc.is_performed_id) {
+      fetch(`${API_URL}/is-performed/${svc.is_performed_id}`)
+        .then((res) => {
+          if (res.ok) return res.json();
+          throw new Error();
+        })
+        .then((data) => {
+          setSelectedActionId(data.action_id);
+          setPrice(data.price);
+        })
+        .catch(() => {});
+    }
   };
 
   const closePanel = () => {
     setShowPanel(false);
     setEditingService(null);
+    setShowDeleteConfirm(false);
   };
 
   // Keyboard escape
@@ -269,7 +294,15 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
           date_start_planned: toISODateString(selectedStart!),
           date_end_planned: toISODateString(selectedEnd!),
           service_name: serviceName || null,
+          state: editingService.state === "canceled" ? "created" : undefined,
         });
+        if (editingService.is_performed_id) {
+          await caretakerPanelApi.updateExploitation(vehicleId, editingService.is_performed_id, {
+            state: perfState,
+            action_id: selectedActionId || undefined,
+            price: price || 0,
+          });
+        }
         reservationId = editingService.id;
         toast("success", "Rezerwacja serwisowa zaktualizowana!");
       } else {
@@ -301,6 +334,50 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
       toast("error", err instanceof Error ? err.message : "Błąd.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = async (reservationId: number) => {
+    setCancelingId(reservationId);
+    try {
+      await caretakerPanelApi.cancelReservation(vehicleId, reservationId);
+      toast("success", "Rezerwacja serwisowa została anulowana.");
+      setConfirmCancelId(null);
+      setShowDeleteConfirm(false);
+      closePanel();
+      fetchServices();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "Błąd anulowania rezerwacji.");
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
+  const handleDelete = async (reservationId: number) => {
+    setIsDeleting(true);
+    try {
+      await reservationApi.delete(reservationId);
+      toast("success", "Serwis został całkowicie usunięty.");
+      setShowDeleteConfirm(false);
+      closePanel();
+      fetchServices();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "Błąd usuwania serwisu.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleUpdateIsPerformed = async (isPerformedId: number, newState: State) => {
+    setUpdatingIsPerformedId(isPerformedId);
+    try {
+      await caretakerPanelApi.updateExploitation(vehicleId, isPerformedId, { state: newState });
+      toast("success", "Status wykonania serwisu został zaktualizowany.");
+      fetchServices();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "Błąd aktualizacji statusu serwisu.");
+    } finally {
+      setUpdatingIsPerformedId(null);
     }
   };
 
@@ -397,7 +474,7 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
             const svcName = svc.service_name || null;
             return (
               <div key={svc.id} className="glass-surface rounded-2xl p-6 border border-white/5">
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-center">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="text-xs font-black text-gray-400">#{svc.id}</span>
@@ -407,13 +484,17 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
                       <div className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                         Serwis
                       </div>
-                      {svc.state === "completed" ? (
+                      {svc.state === "canceled" ? (
+                        <div className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
+                          Anulowany
+                        </div>
+                      ) : (svc.state === "completed" || svc.is_performed_state === State.COMPLETED) ? (
                         <div className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg bg-stone-500/10 text-stone-400 border border-stone-500/20">
                           Zakończony
                         </div>
-                      ) : svc.state === "canceled" ? (
-                        <div className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
-                          Anulowany
+                      ) : svc.is_performed_state === State.PERFORMED ? (
+                        <div className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                          Wykonany
                         </div>
                       ) : (
                         <div className="px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -434,14 +515,67 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
                       })}
                     </p>
                   </div>
-                  {svc.state === "created" && (
-                    <button
-                      type="button"
-                      onClick={() => openEditPanel(svc)}
-                      className="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors"
-                    >
-                      Edytuj
-                    </button>
+                  {(svc.state === "created" || svc.state === "canceled" || svc.state === "in_progress" || svc.state === "completed" || svc.state === "accepted") && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      {confirmCancelId === svc.id ? (
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setConfirmCancelId(null)}
+                            className="px-4 py-2 text-xs font-bold rounded-xl bg-white/5 hover:bg-white/10 transition-colors text-white/60"
+                          >
+                            Cofnij
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCancel(svc.id)}
+                            disabled={cancelingId === svc.id}
+                            className="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
+                          >
+                            {cancelingId === svc.id ? "..." : "Potwierdź anulowanie"}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          {(svc.state === "created" || svc.state === "in_progress") && svc.is_performed_state === State.AWAITING && svc.is_performed_id && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateIsPerformed(svc.is_performed_id!, State.PERFORMED)}
+                              disabled={updatingIsPerformedId === svc.is_performed_id}
+                              className="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
+                            >
+                              {updatingIsPerformedId === svc.is_performed_id ? "..." : "Wykonaj"}
+                            </button>
+                          )}
+                          {(svc.state === "created" || svc.state === "in_progress") && svc.is_performed_state === State.PERFORMED && svc.is_performed_id && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateIsPerformed(svc.is_performed_id!, State.COMPLETED)}
+                              disabled={updatingIsPerformedId === svc.is_performed_id}
+                              className="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
+                            >
+                              {updatingIsPerformedId === svc.is_performed_id ? "..." : "Zakończ"}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => openEditPanel(svc)}
+                            className="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors"
+                          >
+                            Edytuj
+                          </button>
+                          {svc.state === "created" && (!svc.is_performed_state || svc.is_performed_state === State.AWAITING) && (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmCancelId(svc.id)}
+                              className="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                            >
+                              Anuluj
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -553,6 +687,30 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
                     <p className="text-xs text-red-400 mt-1">{fieldErrors.price}</p>
                   )}
                 </div>
+
+                {editingService && (
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                      Stan realizacji serwisu
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={perfState}
+                        onChange={(e) => setPerfState(e.target.value as State)}
+                        className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-colors"
+                      >
+                        <option value={State.AWAITING} className="bg-[#0d0f14]">Zaplanowany</option>
+                        <option value={State.PERFORMED} className="bg-[#0d0f14]">Wykonany</option>
+                        <option value={State.COMPLETED} className="bg-[#0d0f14]">Zakończony</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </>
 
               {/* Calendar section (identical to vehicles page) */}
@@ -691,6 +849,42 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
                     ? "Zapisz zmiany"
                     : "Zatwierdź serwis"}
               </button>
+
+              {editingService && (
+                <>
+                  {!showDeleteConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="w-full py-4 text-xs font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors"
+                    >
+                      Usuń serwis całkowicie
+                    </button>
+                  ) : (
+                    <div className="p-6 rounded-3xl bg-red-500/5 border border-red-500/10 space-y-4 animate-in fade-in zoom-in duration-300">
+                      <p className="text-sm font-bold text-red-400 text-center">Czy na pewno chcesz całkowicie usunąć ten serwis?</p>
+                      <p className="text-[10px] text-red-400/60 text-center uppercase tracking-wider">Tej operacji nie można cofnąć.</p>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          className="flex-1 py-3 rounded-xl bg-white/5 text-xs font-bold hover:bg-white/10 transition-colors text-white"
+                        >
+                          Cofnij
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(editingService.id)}
+                          disabled={isDeleting}
+                          className="flex-1 py-3 rounded-xl bg-red-500 text-xs font-black text-white hover:bg-red-600 shadow-lg shadow-red-500/20 disabled:opacity-50"
+                        >
+                          {isDeleting ? "..." : "Tak, usuń"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

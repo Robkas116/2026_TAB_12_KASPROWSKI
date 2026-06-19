@@ -118,6 +118,23 @@ export const caretakerPanelApi = {
     );
   },
 
+  acceptReservation: async (
+    vehicleId: number,
+    reservationId: number,
+  ): Promise<ReservationPublic> => {
+    const response = await fetch(
+      `${API_URL}/caretaker-panel/vehicles/${vehicleId}/reservations/${reservationId}/accept`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      },
+    );
+    return handleResponse<ReservationPublic>(
+      response,
+      "Błąd akceptacji rezerwacji.",
+    );
+  },
+
   getExploitations: async (
     vehicleId: number,
   ): Promise<PanelExploitationPublic[]> => {

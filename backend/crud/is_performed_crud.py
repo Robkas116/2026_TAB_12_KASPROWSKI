@@ -22,6 +22,23 @@ def create_is_performed(
         reservation_id=is_performed_in.reservation_id,
     )
     session.add(db_obj)
+
+    # Sync associated reservation state if purpose is service
+    from models.reservation_model import Reservation, Reservation_state_enum, Purpose_enum
+    from models.is_performed_model import State
+
+    res = session.get(Reservation, db_obj.reservation_id)
+    if res and res.purpose == Purpose_enum.SERVICE:
+        if db_obj.state == State.AWAITING:
+            res.state = Reservation_state_enum.CREATED
+        elif db_obj.state == State.PERFORMED:
+            res.state = Reservation_state_enum.IN_PROGRESS
+        elif db_obj.state == State.COMPLETED:
+            res.state = Reservation_state_enum.COMPLETED
+        elif db_obj.state == State.CANCELED:
+            res.state = Reservation_state_enum.CANCELED
+        session.add(res)
+
     session.commit()
     session.refresh(db_obj)
     return db_obj
@@ -54,6 +71,23 @@ def update_is_performed(
         setattr(db_is_performed, field, value)
 
     session.add(db_is_performed)
+
+    # Sync associated reservation state if purpose is service
+    from models.reservation_model import Reservation, Reservation_state_enum, Purpose_enum
+    from models.is_performed_model import State
+
+    res = session.get(Reservation, db_is_performed.reservation_id)
+    if res and res.purpose == Purpose_enum.SERVICE:
+        if db_is_performed.state == State.AWAITING:
+            res.state = Reservation_state_enum.CREATED
+        elif db_is_performed.state == State.PERFORMED:
+            res.state = Reservation_state_enum.IN_PROGRESS
+        elif db_is_performed.state == State.COMPLETED:
+            res.state = Reservation_state_enum.COMPLETED
+        elif db_is_performed.state == State.CANCELED:
+            res.state = Reservation_state_enum.CANCELED
+        session.add(res)
+
     try:
         session.commit()
     except IntegrityError as exc:

@@ -19,7 +19,7 @@ from models.reservation_model import (
     Purpose_enum,
     Reservation_state_enum,
 )
-from models.is_performed_model import IsPerformedUpdate, IsPerformedPublic, State
+from models.is_performed_model import IsPerformedUpdate, IsPerformedPublic, State, IsPerformed
 from models.worker_model import Worker
 
 router = APIRouter(prefix="/caretaker-panel", tags=["Caretaker Panel"])
@@ -80,6 +80,15 @@ def get_vehicle_reservations(
     enriched = []
     for r in result.data:
         w = worker_crud.get_worker_by_id(session=db, worker_id=r.worker_id)
+
+        is_performed_state = None
+        is_performed_id = None
+        if r.purpose == Purpose_enum.SERVICE:
+            ip = db.query(IsPerformed).filter(IsPerformed.reservation_id == r.id).first()
+            if ip:
+                is_performed_state = ip.state
+                is_performed_id = ip.id
+
         enriched.append(
             PanelReservationPublic(
                 id=r.id,
@@ -97,6 +106,8 @@ def get_vehicle_reservations(
                 vehicle_id=r.vehicle_id,
                 worker_id=r.worker_id,
                 worker_name=w.name if w else "Nieznany",
+                is_performed_state=is_performed_state,
+                is_performed_id=is_performed_id,
             )
         )
 
@@ -139,6 +150,51 @@ def cancel_reservation(
         session=db,
         reservation_id=reservation_id,
         reservation_in=ReservationUpdate(state=Reservation_state_enum.CANCELED),
+    )
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Rezerwacja nie znaleziona.",
+        )
+    return updated
+
+
+# ---------------------------------------------------------------------------
+# Accept a reservation
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/vehicles/{vehicle_id}/reservations/{reservation_id}/accept",
+    response_model=ReservationPublic,
+)
+def accept_reservation(
+    vehicle_id: int,
+    reservation_id: int,
+    db: Session = Depends(get_db),
+    current_user: Worker = Depends(deps.get_current_user),
+):
+    """Accept a pending reservation on the caretaker's vehicle."""
+    deps.verify_caretaker_of_vehicle(vehicle_id, current_user, db)
+
+    db_res = reservation_crud.get_reservation_by_id(
+        session=db, reservation_id=reservation_id
+    )
+    if not db_res or db_res.vehicle_id != vehicle_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Rezerwacja nie znaleziona.",
+        )
+
+    if db_res.state != Reservation_state_enum.CREATED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Można zaakceptować tylko nowo utworzoną rezerwację.",
+        )
+
+    updated = reservation_crud.update_reservation(
+        session=db,
+        reservation_id=reservation_id,
+        reservation_in=ReservationUpdate(state=Reservation_state_enum.ACCEPTED),
     )
     if not updated:
         raise HTTPException(

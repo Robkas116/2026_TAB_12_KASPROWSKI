@@ -41,6 +41,20 @@ export default function ReservationsSection({
 }: ReservationsSectionProps) {
   const [cancelingId, setCancelingId] = useState<number | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<number | null>(null);
+  const [acceptingId, setAcceptingId] = useState<number | null>(null);
+
+  const handleAccept = async (reservationId: number) => {
+    setAcceptingId(reservationId);
+    try {
+      await caretakerPanelApi.acceptReservation(vehicleId, reservationId);
+      toast("success", "Rezerwacja została zaakceptowana.");
+      onRefresh();
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "Błąd akceptacji rezerwacji.");
+    } finally {
+      setAcceptingId(null);
+    }
+  };
 
   const handleCancel = async (reservationId: number) => {
     setCancelingId(reservationId);
@@ -115,6 +129,16 @@ export default function ReservationsSection({
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  {r.state === "created" && confirmCancelId !== r.id && (
+                    <button
+                      type="button"
+                      onClick={() => handleAccept(r.id)}
+                      disabled={acceptingId === r.id}
+                      className="px-5 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
+                    >
+                      {acceptingId === r.id ? "..." : "Akceptuj"}
+                    </button>
+                  )}
                   {isCancelable && (
                     confirmCancelId === r.id ? (
                       <div className="flex gap-2">

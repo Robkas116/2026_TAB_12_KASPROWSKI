@@ -2,6 +2,7 @@ export enum State {
 	AWAITING = "awaiting",
 	PERFORMED = "performed",
 	COMPLETED = "completed",
+	CANCELED = "canceled",
 }
 
 export interface IsPerformedBase {
