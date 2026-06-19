@@ -183,7 +183,8 @@ export default function EditModal({
   const optionalFieldsForEntity = OPTIONAL_FIELDS[entityType as EntityType] || new Set();
 
   const getInputType = (field: string) => {
-    if (field.includes("date")) return "datetime-local";
+    if (field.includes("date") && entityType !== "IsPerformed") return "datetime-local";
+    else if (field.includes("date") && entityType === "IsPerformed") return "date";
     if (field === "price" || field.endsWith("_id") || field === "distance") return "number";
     return "text";
   };
@@ -311,7 +312,7 @@ export default function EditModal({
                     <option value="business">Biznesowy</option>
                     <option value="private">Prywatny</option>
                   </select>
-                ) : field === "state" ? (
+                ) : field === "state" && entityType === "Reservations" ? (
                   <select
                     id={`edit-${field}`}
                     name={field}
@@ -325,6 +326,19 @@ export default function EditModal({
                     <option value="in_progress">W trakcie</option>
                     <option value="completed">Zakończona</option>
                     <option value="canceled">Anulowana</option>
+                  </select>
+                ) : field === "state" && entityType === "IsPerformed" ? (
+                  <select
+                    id={`edit-${field}`}
+                    name={field}
+                    value={formData[field] || "created"}
+                    onChange={handleChange}
+                    className={`cursor-pointer input-dark ${hasError ? "input-error" : ""}`}
+                    required={!isOptional}
+                  >
+                    <option value="awaiting">Oczekująca</option>
+                    <option value="performed">Wykonywana</option>
+                    <option value="completed">Zakończona</option>
                   </select>
                 ) : field === "type" ? (
                   <select
