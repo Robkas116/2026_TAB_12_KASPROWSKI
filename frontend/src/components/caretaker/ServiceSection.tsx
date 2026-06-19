@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { caretakerPanelApi } from "@/lib/api/caretaker_panel";
+import { actionApi } from "@/lib/api/action";
+import { isPerformedApi } from "@/lib/api/is_performed";
+import { State } from "@/types/is_performed_types";
 import {
   daysInMonth,
   firstDayOfMonth,
@@ -14,6 +17,8 @@ import {
 } from "@/lib/calendar";
 import type { PanelReservationPublic } from "@/types/caretaker_panel_types";
 import type { ReservationPublic } from "@/types/reservation_types";
+import type { ActionType } from "@/types/action_types";
+
 
 interface ServiceSectionProps {
   vehicleId: number;
@@ -43,6 +48,10 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
 
   // --- Service name ---
   const [serviceName, setServiceName] = useState("");
+  const [selectedActionId, setSelectedActionId] = useState<number | null>(null);
+  const [price, setPrice] = useState<number>(0);
+  const [actions, setActions] = useState<Array<{ id: number; name: string; type: ActionType }>>([]);
+  const [loadingActions, setLoadingActions] = useState(false);
 
   const fetchServices = useCallback(async () => {
     setLoading(true);
@@ -55,6 +64,26 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
       setLoading(false);
     }
   }, [vehicleId, toast]);
+
+  useEffect(() => {
+    if (!showPanel) return;
+    const fetchActions = async () => {
+      setLoadingActions(true);
+      try {
+        const result = await actionApi.getAll();
+        const items = Array.isArray(result) ? result : (result as any)?.items || (result as any)?.data || [];
+        const serviceActions = items.filter(
+          (item: any) => item.type === "service"
+        );
+        setActions(serviceActions);
+      } catch {
+        setActions([]);
+      } finally {
+        setLoadingActions(false);
+      }
+    };
+    fetchActions();
+  }, [showPanel]);
 
   useEffect(() => {
     fetchServices();
@@ -88,6 +117,8 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
   const openCreatePanel = () => {
     setEditingService(null);
     setServiceName("");
+    setSelectedActionId(null);
+    setPrice(0);
     setSelectedStart(null);
     setSelectedEnd(null);
     setSelectingTimeFor(null);
@@ -100,6 +131,8 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
   const openEditPanel = (svc: PanelReservationPublic) => {
     setEditingService(svc);
     setServiceName(svc.service_name || "");
+    setSelectedActionId(null);
+    setPrice(0);
     const start = new Date(svc.date_start_planned);
     const end = new Date(svc.date_end_planned);
     setSelectedStart(start);
@@ -219,6 +252,8 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
     const errors: Record<string, string> = {};
     if (!selectedStart) errors.start = "Wybierz datę rozpoczęcia.";
     if (!selectedEnd) errors.end = "Wybierz datę zakończenia.";
+    if (!selectedActionId && !editingService) errors.action = "Wybierz czynność serwisową.";
+    // if (!editingService && price <= 0) errors.price = "Cena musi być większa od 0.";
     if (selectedStart && selectedEnd && selectedEnd <= selectedStart) {
       errors.end = "Data zakończenia musi być późniejsza niż rozpoczęcia.";
     }
@@ -227,15 +262,18 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
 
     setIsSubmitting(true);
     try {
+      let reservationId: number;
+
       if (editingService) {
         await caretakerPanelApi.editServiceReservation(vehicleId, editingService.id, {
           date_start_planned: toISODateString(selectedStart!),
           date_end_planned: toISODateString(selectedEnd!),
           service_name: serviceName || null,
         });
+        reservationId = editingService.id;
         toast("success", "Rezerwacja serwisowa zaktualizowana!");
       } else {
-        await caretakerPanelApi.createServiceReservation(vehicleId, {
+        const response = await caretakerPanelApi.createServiceReservation(vehicleId, {
           date_start_planned: toISODateString(selectedStart!),
           date_end_planned: toISODateString(selectedEnd!),
           purpose: "service",
@@ -244,6 +282,17 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
           worker_id: 0,
           service_name: serviceName || null,
         });
+        reservationId = response.id;
+
+        // Create IsPerformed record
+        await isPerformedApi.create({
+          action_id: selectedActionId!,
+          reservation_id: reservationId,
+          price,
+          date: toISODateString(selectedStart!).split('T')[0],
+          state: State.AWAITING,
+        });
+
         toast("success", "Rezerwacja serwisowa utworzona!");
       }
       closePanel();
@@ -445,6 +494,66 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
                   className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-colors"
                 />
               </div>
+
+              <>
+                {/* Action Dropdown */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                    Czynność serwisowa
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedActionId || ""}
+                      onChange={(e) => setSelectedActionId(Number(e.target.value))}
+                      disabled={loadingActions}
+                      className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50"
+                    >
+                      <option value="" disabled className="bg-[#0d0f14]">
+                        {loadingActions ? "Ładowanie czynności..." : "Wybierz czynność z listy..."}
+                      </option>
+                      {actions.map((action) => (
+
+                        <option key={action.id} value={action.id} className="bg-[#0d0f14]">
+                          {action.name}
+                        </option>
+
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                  {fieldErrors.action && (
+                    <p className="text-xs text-red-400 mt-1">{fieldErrors.action}</p>
+                  )}
+                </div>
+
+                {/* Price input */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                    Cena serwisu
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={price || ""}
+                      onChange={(e) => setPrice(Number(e.target.value))}
+                      placeholder="0"
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                    />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30 font-medium text-sm">
+                      PLN
+                    </div>
+                  </div>
+                  {fieldErrors.price && (
+                    <p className="text-xs text-red-400 mt-1">{fieldErrors.price}</p>
+                  )}
+                </div>
+              </>
 
               {/* Calendar section (identical to vehicles page) */}
               <div className="space-y-6 pt-4">
