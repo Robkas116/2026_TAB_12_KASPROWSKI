@@ -75,6 +75,7 @@ def create_reservation(
         purpose=reservation_in.purpose,
         vehicle_id=reservation_in.vehicle_id,
         worker_id=reservation_in.worker_id,
+        service_name=reservation_in.service_name,
     )
 
     session.add(db_obj)
