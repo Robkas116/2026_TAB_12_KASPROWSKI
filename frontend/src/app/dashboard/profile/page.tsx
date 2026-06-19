@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { WorkerPublic } from "@/types/worker_types";
+import { caretakerPanelApi } from "@/lib/api/caretaker_panel";
 
 export default function ProfilePage() {
 	const [user, setUser] = useState<WorkerPublic | null>(null);
@@ -14,6 +15,7 @@ export default function ProfilePage() {
 	const [confirmNewPassword, setConfirmNewPassword] = useState("");
 	const [changeError, setChangeError] = useState("");
 	const [changeSuccess, setChangeSuccess] = useState("");
+	const [isCaretaker, setIsCaretaker] = useState(false);
 
 	useEffect(() => {
 		const fetchUser = async () => {
@@ -28,6 +30,19 @@ export default function ProfilePage() {
 		};
 		fetchUser();
 	}, []);
+
+	useEffect(() => {
+		caretakerPanelApi
+			.getMyVehicles()
+			.then((vehicles) => {
+				setIsCaretaker(vehicles.length > 0);
+			})
+			.catch((err) => {
+				console.error("Błąd podczas sprawdzania statusu opiekuna:", err);
+				setIsCaretaker(false);
+			});
+	}, []);
+
 
 	const handleChangePassword = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -111,7 +126,7 @@ export default function ProfilePage() {
 				<div className="lg:col-span-2 space-y-8">
 					<div className="glass-surface rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl relative group">
 						<div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-						
+
 						<div className="p-8 sm:p-10 border-b border-white/5 bg-white/[0.02] flex items-center justify-between relative z-10">
 							<div className="space-y-1">
 								<h3 className="text-xl font-black text-white tracking-tight">
@@ -191,13 +206,17 @@ export default function ProfilePage() {
 											<span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Rola w systemie</span>
 										</div>
 										<div className="flex items-center gap-2">
-											<span className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest border ${
-												user?.is_superuser 
-												? "bg-purple-500/10 border-purple-500/20 text-purple-300" 
-												: "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
-											}`}>
+											<span className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest border ${user?.is_superuser
+													? "bg-purple-500/10 border-purple-500/20 text-purple-300"
+													: "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
+												}`}>
 												{user?.is_superuser ? "Administrator" : "Pracownik"}
 											</span>
+											{isCaretaker && (
+												<span className="px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest border bg-blue-500/10 border-blue-500/20 text-blue-300">
+													Opiekun
+												</span>
+											)}
 										</div>
 									</div>
 								</div>
@@ -234,7 +253,7 @@ export default function ProfilePage() {
 				<div className="space-y-8">
 					<div className="glass-surface rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden relative group">
 						<div className="absolute inset-0 bg-gradient-to-b from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-						
+
 						<div className="p-8 border-b border-white/5 bg-white/[0.02] relative z-10">
 							<div className="flex items-center gap-3 mb-1">
 								<div className="p-2 rounded-xl bg-rose-500/10 text-rose-400">
@@ -259,7 +278,7 @@ export default function ProfilePage() {
 										onChange={(e) => setOldPassword(e.target.value)}
 									/>
 								</div>
-								
+
 								<div className="h-px w-full bg-white/5 my-2" />
 
 								<div className="space-y-2">
@@ -302,9 +321,9 @@ export default function ProfilePage() {
 									</div>
 								)}
 
-								<button 
-									type="submit" 
-									disabled={changing} 
+								<button
+									type="submit"
+									disabled={changing}
 									className="btn-primary w-full py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(139,92,246,0.3)] hover:shadow-[0_15px_40px_rgba(139,92,246,0.5)] transition-all mt-4"
 								>
 									{changing ? "Przetwarzanie..." : "Zaktualizuj Hasło"}
