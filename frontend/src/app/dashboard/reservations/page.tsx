@@ -518,8 +518,17 @@ export default function ReservationsPage() {
                 <button
                   key={er.reservation.id}
                   type="button"
-                  onClick={() => openPanel(er)}
-                  className="group relative glass-elevated rounded-[2rem] overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] text-left border-white/5 hover:border-purple-500/30"
+                  onClick={() => {
+                    if (er.reservation.purpose === "service") {
+                      toast("error", "Zarządzanie serwisami odbywa się w zakładce Twoje Pojazdy (Panel Opiekuna).");
+                    } else {
+                      openPanel(er);
+                    }
+                  }}
+                  className={`group relative glass-elevated rounded-[2rem] overflow-hidden transition-all duration-500 text-left border-white/5 ${er.reservation.purpose === "service"
+                    ? "opacity-80"
+                    : "hover:-translate-y-2 hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] hover:border-purple-500/30"
+                    }`}
                 >
                   {/* Top: Tech Placeholder */}
                   <div className="relative h-40 flex items-center justify-center bg-black/40 overflow-hidden border-b border-white/5">
@@ -611,7 +620,11 @@ export default function ReservationsPage() {
                           className="opacity-70"
                         />
                         <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
-                          {er.reservation.purpose === "business" ? "Business" : "Personal"}
+                          {er.reservation.purpose === "business"
+                            ? "Business"
+                            : er.reservation.purpose === "private"
+                              ? "Private"
+                              : "Service"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-purple-400 group-hover:text-white transition-all">
@@ -667,17 +680,17 @@ export default function ReservationsPage() {
               <div className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Cel rezerwacji</label>
-                    <select
-                      className="input-dark bg-white/5 border-white/10 text-white rounded-2xl py-4 w-full focus:border-purple-500/50"
-                      value={String(formData.purpose || "business")}
-                      onChange={(e) => handleFieldChange("purpose", e.target.value)}
-                    >
-                      {PURPOSE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    className="input-dark bg-white/5 border-white/10 text-white rounded-2xl py-4 w-full focus:border-purple-500/50"
+                    value={String(formData.purpose || "business")}
+                    onChange={(e) => handleFieldChange("purpose", e.target.value)}
+                  >
+                    {PURPOSE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
                 </div>
+              </div>
 
               {/* REZERVATION CALENDAR */}
               <div className="space-y-6 pt-4">
