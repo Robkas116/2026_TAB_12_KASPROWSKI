@@ -388,6 +388,7 @@ export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceS
 
   // --- Calendar render (identical to vehicles page) ---
   const renderCalendar = () => {
+    const isCanceled = editingService?.state === "canceled";
     const { year, month } = calendarMonth;
     const totalDays = daysInMonth(year, month);
     const fdom = firstDayOfMonth(year, month);
@@ -422,14 +423,16 @@ export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceS
       const selected = isStart || isEnd;
       const inRange = selectedStart && selectedEnd && date > selectedStart && date < selectedEnd;
 
+      const isDisabled = past || isCanceled;
+
       cells.push(
         <button
           key={d}
           type="button"
-          disabled={past}
+          disabled={isDisabled}
           onClick={() => handleCalendarDayClick(d)}
           className={`h-9 w-9 rounded-lg text-xs font-medium transition-all flex flex-col items-center justify-center relative
-            ${past ? "opacity-30 cursor-not-allowed" : "hover:bg-white/10 cursor-pointer text-white/70"}
+            ${isDisabled ? "opacity-30 cursor-not-allowed" : "hover:bg-white/10 cursor-pointer text-white/70"}
             ${selected ? "!text-white !bg-purple-500 shadow-[0_0_15px_rgba(139,92,246,0.5)]" : ""}
             ${inRange ? "bg-purple-500/20 text-purple-300" : ""}
           `}
@@ -590,123 +593,84 @@ export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceS
       )}
 
       {/* --- SIDE PANEL (identical structure to vehicles page) --- */}
-      {showPanel && (
-        <div className="fixed inset-x-0 top-16 bottom-0 z-[100] flex justify-end" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={closePanel} />
+      {showPanel && (() => {
+        const isCanceled = editingService?.state === "canceled";
 
-          <div className="relative z-10 w-full md:w-[35rem] h-full bg-[#0d0f14] shadow-[-20px_0_60px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col border-l border-white/5">
-            {/* Header */}
-            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-cyan-400">
-                  <span>{editingService ? "Edycja Serwisu" : "Planowanie Serwisu"}</span>
-                  {editingService && (
-                    <>
-                      <span className="w-1 h-1 rounded-full bg-white/20" />
-                      <span className="text-white/40">#{editingService.id}</span>
-                    </>
-                  )}
+        return (
+          <div className="fixed inset-x-0 top-16 bottom-0 z-[100] flex justify-end" role="dialog" aria-modal="true">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={closePanel} />
+
+            <div className="relative z-10 w-full md:w-[35rem] h-full bg-[#0d0f14] shadow-[-20px_0_60px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col border-l border-white/5">
+              {/* Header */}
+              <div className="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-cyan-400">
+                    <span>{editingService ? "Edycja Serwisu" : "Planowanie Serwisu"}</span>
+                    {editingService && (
+                      <>
+                        <span className="w-1 h-1 rounded-full bg-white/20" />
+                        <span className="text-white/40">#{editingService.id}</span>
+                      </>
+                    )}
+                  </div>
+                  <h2 className="text-2xl font-black text-white">
+                    {editingService ? "Edytuj serwis" : "Nowy serwis"}
+                  </h2>
                 </div>
-                <h2 className="text-2xl font-black text-white">
-                  {editingService ? "Edytuj serwis" : "Nowy serwis"}
-                </h2>
-              </div>
-              <button onClick={closePanel} className="p-3 rounded-2xl hover:bg-white/5 transition-colors text-white/40 hover:text-white">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Content */}
-            <form onSubmit={handleSubmit} className="p-8 flex-1 overflow-y-auto custom-scrollbar space-y-10">
-              {/* Service name input */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                  Nazwa serwisu
-                </label>
-                <input
-                  type="text"
-                  value={serviceName}
-                  onChange={(e) => setServiceName(e.target.value)}
-                  placeholder="np. Wymiana opon, Przegląd techniczny..."
-                  className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-colors"
-                />
+                <button onClick={closePanel} className="p-3 rounded-2xl hover:bg-white/5 transition-colors text-white/40 hover:text-white">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
 
-              <>
-                {/* Action Dropdown */}
+              {/* Content */}
+              <form onSubmit={handleSubmit} className="p-8 flex-1 overflow-y-auto custom-scrollbar space-y-10">
+
+                {isCanceled && (
+                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center">
+                    <p className="text-xs font-bold text-red-400">
+                      Ten serwis jest anulowany. Edycja została zablokowana. Możesz go jedynie usunąć z systemu.
+                    </p>
+                  </div>
+                )}
+
+                {/* Service name input */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                    Czynność serwisowa
+                    Nazwa serwisu
                   </label>
-                  <div className="relative">
-                    <select
-                      value={selectedActionId || ""}
-                      onChange={(e) => setSelectedActionId(Number(e.target.value))}
-                      disabled={loadingActions}
-                      className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50"
-                    >
-                      <option value="" disabled className="bg-[#0d0f14]">
-                        {loadingActions ? "Ładowanie czynności..." : "Wybierz czynność z listy..."}
-                      </option>
-                      {actions.map((action) => (
-
-                        <option key={action.id} value={action.id} className="bg-[#0d0f14]">
-                          {action.name}
-                        </option>
-
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                  {fieldErrors.action && (
-                    <p className="text-xs text-red-400 mt-1">{fieldErrors.action}</p>
-                  )}
+                  <input
+                    type="text"
+                    value={serviceName}
+                    onChange={(e) => setServiceName(e.target.value)}
+                    disabled={isCanceled}
+                    placeholder="np. Wymiana opon, Przegląd techniczny..."
+                    className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
                 </div>
 
-                {/* Price input */}
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                    Cena serwisu
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={price || ""}
-                      onChange={(e) => setPrice(Number(e.target.value))}
-                      placeholder="0"
-                      className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-colors"
-                    />
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30 font-medium text-sm">
-                      PLN
-                    </div>
-                  </div>
-                  {fieldErrors.price && (
-                    <p className="text-xs text-red-400 mt-1">{fieldErrors.price}</p>
-                  )}
-                </div>
-
-                {editingService && (
+                <>
+                  {/* Action Dropdown */}
                   <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                      Stan realizacji serwisu
+                      Czynność serwisowa
                     </label>
                     <div className="relative">
                       <select
-                        value={perfState}
-                        onChange={(e) => setPerfState(e.target.value as State)}
-                        className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-colors"
+                        value={selectedActionId || ""}
+                        onChange={(e) => setSelectedActionId(Number(e.target.value))}
+                        disabled={loadingActions || isCanceled}
+                        className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <option value={State.AWAITING} className="bg-[#0d0f14]">Zaplanowany</option>
-                        <option value={State.PERFORMED} className="bg-[#0d0f14]">Wykonany</option>
-                        <option value={State.COMPLETED} className="bg-[#0d0f14]">Zakończony</option>
+                        <option value="" disabled className="bg-[#0d0f14]">
+                          {loadingActions ? "Ładowanie czynności..." : "Wybierz czynność z listy..."}
+                        </option>
+                        {actions.map((action) => (
+                          <option key={action.id} value={action.id} className="bg-[#0d0f14]">
+                            {action.name}
+                          </option>
+                        ))}
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -714,186 +678,245 @@ export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceS
                         </svg>
                       </div>
                     </div>
+                    {fieldErrors.action && (
+                      <p className="text-xs text-red-400 mt-1">{fieldErrors.action}</p>
+                    )}
                   </div>
-                )}
-              </>
 
-              {/* Calendar section (identical to vehicles page) */}
-              <div className="space-y-6 pt-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-white/30">
-                    Kalendarz Serwisu
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <span className="text-xs font-black uppercase tracking-widest text-white/80 w-32 text-center">
-                      {MONTHS_PL[calendarMonth.month]} {calendarMonth.year}
-                    </span>
-                    <button type="button" onClick={nextMonth} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-black/20 rounded-[2rem] p-6 border border-white/5">
-                  <div className="grid grid-cols-7 mb-4">
-                    {DAYS_PL.map((d) => (
-                      <div key={d} className="text-[9px] font-black uppercase text-white/20 text-center">
-                        {d}
+                  {/* Price input */}
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                      Cena serwisu
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={price || ""}
+                        onChange={(e) => setPrice(Number(e.target.value))}
+                        disabled={isCanceled}
+                        placeholder="0"
+                        className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30 font-medium text-sm">
+                        PLN
                       </div>
-                    ))}
+                    </div>
+                    {fieldErrors.price && (
+                      <p className="text-xs text-red-400 mt-1">{fieldErrors.price}</p>
+                    )}
                   </div>
-                  <div className="grid grid-cols-7 gap-1">
-                    {Array.from({ length: firstDayOfMonth(calendarMonth.year, calendarMonth.month) }).map((_, i) => (
-                      <div key={`empty-${i}`} />
-                    ))}
-                    {renderCalendar()}
-                  </div>
-                </div>
 
-                {/* Hour picker (identical to vehicles page) */}
-                {selectingTimeFor && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-purple-400">
-                        Wybierz godzinę {selectingTimeFor === "start" ? "rozpoczęcia" : "zakończenia"}
+                  {editingService && (
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                        Stan realizacji serwisu
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setSelectingTimeFor(null)}
-                        className="text-[10px] font-bold text-white/40 hover:text-white transition-colors"
-                      >
-                        Anuluj
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                      {Array.from({ length: 24 }).map((_, i) => {
-                        const hourDate = new Date(
-                          selectingTimeFor === "start" ? selectedStart! : selectedEnd!,
-                        );
-                        hourDate.setHours(i, 0, 0, 0);
-
-                        const isPast = hourDate < new Date();
-                        const isOccupied = existingReservations.some((r) => {
-                          if (editingService && r.id === editingService.id) return false;
-                          const s = new Date(r.date_start_planned);
-                          const e = new Date(r.date_end_planned);
-                          return hourDate >= s && hourDate < e;
-                        });
-                        const isSelected =
-                          selectingTimeFor === "start"
-                            ? selectedStart && selectedStart.getHours() === i
-                            : selectedEnd && selectedEnd.getHours() === i;
-
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            disabled={isPast || isOccupied}
-                            onClick={() => handleTimeClick(i)}
-                            className={`py-2.5 rounded-xl text-[10px] font-black transition-all border
-                              ${isPast || isOccupied
-                                ? "bg-white/5 border-transparent text-white/10 cursor-not-allowed"
-                                : "bg-white/5 border-white/5 text-white/60 hover:border-purple-500/50 hover:text-white"}
-                              ${isSelected
-                                ? "!bg-purple-500 !border-purple-500 !text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]"
-                                : ""}
-                            `}
-                          >
-                            {String(i).padStart(2, "0")}:00
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Selected period display */}
-                <div className="flex items-center justify-between px-2 pt-2">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
-                      Wybrany Okres
-                    </span>
-                    <span className="text-xs font-bold text-white/80">
-                      {selectedStart
-                        ? `${selectedStart.toLocaleDateString("pl-PL")} ${String(selectedStart.getHours()).padStart(2, "0")}:00`
-                        : "..."}{" "}
-                      —{" "}
-                      {selectedEnd
-                        ? `${selectedEnd.toLocaleDateString("pl-PL")} ${String(selectedEnd.getHours()).padStart(2, "0")}:00`
-                        : "..."}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </form>
-
-            {/* Footer (identical structure to vehicles page) */}
-            <div className="p-8 border-t border-white/5 bg-black/20 space-y-6">
-              {fieldErrors.range && (
-                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
-                  {fieldErrors.range}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSubmitting || !selectedStart || !selectedEnd}
-                className="w-full py-4 text-sm font-black uppercase tracking-widest rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-500/20"
-              >
-                {isSubmitting
-                  ? "Zapisywanie..."
-                  : editingService
-                    ? "Zapisz zmiany"
-                    : "Zatwierdź serwis"}
-              </button>
-
-              {editingService && (
-                <>
-                  {!showDeleteConfirm ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      className="w-full py-4 text-xs font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors"
-                    >
-                      Usuń serwis całkowicie
-                    </button>
-                  ) : (
-                    <div className="p-6 rounded-3xl bg-red-500/5 border border-red-500/10 space-y-4 animate-in fade-in zoom-in duration-300">
-                      <p className="text-sm font-bold text-red-400 text-center">Czy na pewno chcesz całkowicie usunąć ten serwis?</p>
-                      <p className="text-[10px] text-red-400/60 text-center uppercase tracking-wider">Tej operacji nie można cofnąć.</p>
-                      <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setShowDeleteConfirm(false)}
-                          className="flex-1 py-3 rounded-xl bg-white/5 text-xs font-bold hover:bg-white/10 transition-colors text-white"
+                      <div className="relative">
+                        <select
+                          value={perfState}
+                          onChange={(e) => setPerfState(e.target.value as State)}
+                          disabled={isCanceled}
+                          className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Cofnij
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(editingService.id)}
-                          disabled={isDeleting}
-                          className="flex-1 py-3 rounded-xl bg-red-500 text-xs font-black text-white hover:bg-red-600 shadow-lg shadow-red-500/20 disabled:opacity-50"
-                        >
-                          {isDeleting ? "..." : "Tak, usuń"}
-                        </button>
+                          <option value={State.AWAITING} className="bg-[#0d0f14]">Zaplanowany</option>
+                          <option value={State.PERFORMED} className="bg-[#0d0f14]">Wykonany</option>
+                          <option value={State.COMPLETED} className="bg-[#0d0f14]">Zakończony</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
                   )}
                 </>
-              )}
+
+                {/* Calendar section (identical to vehicles page) */}
+                <div className="space-y-6 pt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30">
+                      Kalendarz Serwisu
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={prevMonth} disabled={isCanceled} className={`p-2 rounded-lg transition-colors text-white/40 ${isCanceled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/5 hover:text-white'}`}>
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <span className="text-xs font-black uppercase tracking-widest text-white/80 w-32 text-center">
+                        {MONTHS_PL[calendarMonth.month]} {calendarMonth.year}
+                      </span>
+                      <button type="button" onClick={nextMonth} disabled={isCanceled} className={`p-2 rounded-lg transition-colors text-white/40 ${isCanceled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/5 hover:text-white'}`}>
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-black/20 rounded-[2rem] p-6 border border-white/5">
+                    <div className="grid grid-cols-7 mb-4">
+                      {DAYS_PL.map((d) => (
+                        <div key={d} className="text-[9px] font-black uppercase text-white/20 text-center">
+                          {d}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {Array.from({ length: firstDayOfMonth(calendarMonth.year, calendarMonth.month) }).map((_, i) => (
+                        <div key={`empty-${i}`} />
+                      ))}
+                      {renderCalendar()}
+                    </div>
+                  </div>
+
+                  {/* Hour picker (identical to vehicles page) */}
+                  {selectingTimeFor && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-purple-400">
+                          Wybierz godzinę {selectingTimeFor === "start" ? "rozpoczęcia" : "zakończenia"}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setSelectingTimeFor(null)}
+                          className="text-[10px] font-bold text-white/40 hover:text-white transition-colors"
+                        >
+                          Anuluj
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        {Array.from({ length: 24 }).map((_, i) => {
+                          const hourDate = new Date(
+                            selectingTimeFor === "start" ? selectedStart! : selectedEnd!,
+                          );
+                          hourDate.setHours(i, 0, 0, 0);
+
+                          const isPast = hourDate < new Date();
+                          const isOccupied = existingReservations.some((r) => {
+                            if (editingService && r.id === editingService.id) return false;
+                            const s = new Date(r.date_start_planned);
+                            const e = new Date(r.date_end_planned);
+                            return hourDate >= s && hourDate < e;
+                          });
+                          const isSelected =
+                            selectingTimeFor === "start"
+                              ? selectedStart && selectedStart.getHours() === i
+                              : selectedEnd && selectedEnd.getHours() === i;
+
+                          // DODANO: Blokada godziny, jeśli jest zajęta, z przeszłości lub serwis jest anulowany
+                          const isDisabledTime = isPast || isOccupied || isCanceled;
+
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              disabled={isDisabledTime}
+                              onClick={() => handleTimeClick(i)}
+                              className={`py-2.5 rounded-xl text-[10px] font-black transition-all border
+                                ${isDisabledTime
+                                  ? "bg-white/5 border-transparent text-white/10 cursor-not-allowed"
+                                  : "bg-white/5 border-white/5 text-white/60 hover:border-purple-500/50 hover:text-white"}
+                                ${isSelected
+                                  ? "!bg-purple-500 !border-purple-500 !text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+                                  : ""}
+                              `}
+                            >
+                              {String(i).padStart(2, "0")}:00
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected period display */}
+                  <div className="flex items-center justify-between px-2 pt-2">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                        Wybrany Okres
+                      </span>
+                      <span className="text-xs font-bold text-white/80">
+                        {selectedStart
+                          ? `${selectedStart.toLocaleDateString("pl-PL")} ${String(selectedStart.getHours()).padStart(2, "0")}:00`
+                          : "..."}{" "}
+                        —{" "}
+                        {selectedEnd
+                          ? `${selectedEnd.toLocaleDateString("pl-PL")} ${String(selectedEnd.getHours()).padStart(2, "0")}:00`
+                          : "..."}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </form>
+
+              {/* Footer (identical structure to vehicles page) */}
+              <div className="p-8 border-t border-white/5 bg-black/20 space-y-6">
+                {fieldErrors.range && (
+                  <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
+                    {fieldErrors.range}
+                  </div>
+                )}
+
+                {/* DODANO: Ukrycie przycisku zapisu dla anulowanych */}
+                {!isCanceled && (
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || !selectedStart || !selectedEnd}
+                    className="w-full py-4 text-sm font-black uppercase tracking-widest rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-500/20"
+                  >
+                    {isSubmitting
+                      ? "Zapisywanie..."
+                      : editingService
+                        ? "Zapisz zmiany"
+                        : "Zatwierdź serwis"}
+                  </button>
+                )}
+
+                {editingService && (
+                  <>
+                    {!showDeleteConfirm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="w-full py-4 text-xs font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors"
+                      >
+                        Usuń serwis całkowicie
+                      </button>
+                    ) : (
+                      <div className="p-6 rounded-3xl bg-red-500/5 border border-red-500/10 space-y-4 animate-in fade-in zoom-in duration-300">
+                        <p className="text-sm font-bold text-red-400 text-center">Czy na pewno chcesz całkowicie usunąć ten serwis?</p>
+                        <p className="text-[10px] text-red-400/60 text-center uppercase tracking-wider">Tej operacji nie można cofnąć.</p>
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setShowDeleteConfirm(false)}
+                            className="flex-1 py-3 rounded-xl bg-white/5 text-xs font-bold hover:bg-white/10 transition-colors text-white"
+                          >
+                            Cofnij
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(editingService.id)}
+                            disabled={isDeleting}
+                            className="flex-1 py-3 rounded-xl bg-red-500 text-xs font-black text-white hover:bg-red-600 shadow-lg shadow-red-500/20 disabled:opacity-50"
+                          >
+                            {isDeleting ? "..." : "Tak, usuń"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
