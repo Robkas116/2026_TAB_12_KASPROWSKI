@@ -109,7 +109,7 @@ export default function ReservationsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
+
   const [existingReservations, setExistingReservations] = useState<ReservationPublic[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
@@ -141,7 +141,7 @@ export default function ReservationsPage() {
       const vehData: VehiclePublic[] = vehResp.items || [];
       const models: VehModelPublic[] = (modelResp as unknown as { data: VehModelPublic[]; count: number }).data || [];
       const makes: MakePublic[] = (makeResp as unknown as { data: MakePublic[]; count: number }).data || [];
-      
+
       const enriched: EnrichedReservation[] = resData
         .map((r) => {
           const vehicle = vehData.find((v) => v.id === r.vehicle_id) || null;
@@ -272,12 +272,12 @@ export default function ReservationsPage() {
     } else if (selectingTimeFor === "end" && selectedEnd) {
       const newEnd = new Date(selectedEnd);
       newEnd.setHours(hour, 0, 0, 0);
-      
+
       if (selectedStart && newEnd <= selectedStart) {
         toast("error", "Data zakończenia musi być późniejsza niż rozpoczęcia.");
         return;
       }
-      
+
       if (selectedStart && doesRangeOverlap(selectedStart, newEnd, existingReservations)) {
         toast("error", "Wybrany termin pokrywa się z istniejącą rezerwacją.");
         return;
@@ -298,8 +298,8 @@ export default function ReservationsPage() {
   const renderCalendar = () => {
     const { year, month } = calendarMonth;
     const totalDays = daysInMonth(year, month);
-    const fdom = firstDayOfMonth(year, month); 
-    const startOffset = fdom === 0 ? 6 : fdom - 1; 
+    const fdom = firstDayOfMonth(year, month);
+    const startOffset = fdom === 0 ? 6 : fdom - 1;
 
     const cells: React.ReactNode[] = [];
     for (let i = 0; i < startOffset; i++) {
@@ -339,11 +339,45 @@ export default function ReservationsPage() {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleStartReservation = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    try {
+      await reservationApi.update(id, { state: "in_progress", date_start: new Date().toISOString() });
+      toast("success", "Trasa została rozpoczęta.");
+      fetchData();
+    } catch (err: unknown) {
+      toast("error", err instanceof Error ? err.message : "Błąd rozpoczynania trasy.");
+    }
+  };
+
+  const handleEndReservation = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    try {
+      await reservationApi.update(id, { state: "completed", date_end: new Date().toISOString() });
+      toast("success", "Trasa została zakończona.");
+      fetchData();
+    } catch (err: unknown) {
+      toast("error", err instanceof Error ? err.message : "Błąd kończenia trasy.");
+    }
+  };
+
+  const handleCancelReservation = async () => {
+    if (!panelReservation) return;
+    try {
+      await reservationApi.update(panelReservation.reservation.id, { state: "canceled" });
+      toast("success", "Rezerwacja została pomyślnie anulowana.");
+      fetchData();
+      closePanel();
+    } catch (err: unknown) {
+      toast("error", err instanceof Error ? err.message : "Błąd anulowania rezerwacji.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!panelReservation || !selectedStart || !selectedEnd) {
-       toast("error", "Wybierz okres rezerwacji na kalendarzu.");
-       return;
+      toast("error", "Wybierz okres rezerwacji na kalendarzu.");
+      return;
     }
 
     if (doesRangeOverlap(selectedStart, selectedEnd, existingReservations)) {
@@ -360,16 +394,16 @@ export default function ReservationsPage() {
         const h = String(d.getHours()).padStart(2, "0");
         return `${y}-${m}-${day}T${h}:00:00`;
       };
-      
+
       const diffMs = selectedEnd.getTime() - selectedStart.getTime();
       const diffHours = diffMs / (1000 * 60 * 60);
       const finalPrice = formData.purpose === "business" ? 0 : Math.ceil(diffHours / 24) * 150;
 
       const updateData: Record<string, unknown> = {
-         date_start_planned: toISO(selectedStart),
-         date_end_planned: toISO(selectedEnd),
-         purpose: formData.purpose,
-         price: finalPrice
+        date_start_planned: toISO(selectedStart),
+        date_end_planned: toISO(selectedEnd),
+        purpose: formData.purpose,
+        price: finalPrice
       };
 
       await reservationApi.update(panelReservation.reservation.id, updateData);
@@ -515,9 +549,8 @@ export default function ReservationsPage() {
               const stateLabel = STATE_LABELS[er.reservation.state] || er.reservation.state;
 
               return (
-                <button
+                <div
                   key={er.reservation.id}
-                  type="button"
                   onClick={() => {
                     if (er.reservation.purpose === "service") {
                       toast("error", "Zarządzanie serwisami odbywa się w zakładce Twoje Pojazdy (Panel Opiekuna).");
@@ -525,7 +558,19 @@ export default function ReservationsPage() {
                       openPanel(er);
                     }
                   }}
-                  className={`group relative glass-elevated rounded-[2rem] overflow-hidden transition-all duration-500 text-left border-white/5 ${er.reservation.purpose === "service"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      if (er.reservation.purpose === "service") {
+                        toast("error", "Zarządzanie serwisami odbywa się w zakładce Twoje Pojazdy (Panel Opiekuna).");
+                      } else {
+                        openPanel(er);
+                      }
+                    }
+                  }}
+                  className={`group relative glass-elevated rounded-[2rem] overflow-hidden transition-all duration-500 text-left border-white/5 cursor-pointer ${er.reservation.purpose === "service"
                     ? "opacity-80"
                     : "hover:-translate-y-2 hover:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] hover:border-purple-500/30"
                     }`}
@@ -534,9 +579,9 @@ export default function ReservationsPage() {
                   <div className="relative h-40 flex items-center justify-center bg-black/40 overflow-hidden border-b border-white/5">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.1)_0%,transparent_70%)]" />
                     <svg className="w-24 h-24 text-white/10 group-hover:text-purple-500/20 transition-colors duration-500" viewBox="0 0 24 24" fill="currentColor">
-                       <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
+                      <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
                     </svg>
-                    
+
                     <div className="absolute top-6 right-6">
                       <div
                         className="badge gap-2 px-3 py-1 text-[9px] font-black uppercase tracking-[0.1em] backdrop-blur-xl border-white/5"
@@ -562,10 +607,10 @@ export default function ReservationsPage() {
                     </div>
 
                     <div className="bg-black/30 rounded-2xl p-5 border border-white/5 space-y-4 relative overflow-hidden group/timeline">
-                       <div className="absolute left-[27px] top-8 bottom-8 w-px bg-gradient-to-b from-purple-500/50 via-blue-500/50 to-transparent" />
+                      <div className="absolute left-[27px] top-8 bottom-8 w-px bg-gradient-to-b from-purple-500/50 via-blue-500/50 to-transparent" />
                       <div className="flex items-center gap-4 relative">
                         <div className="w-6 h-6 flex items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
-                           <Image src="/assets/icons/icon-calendar-check.svg" alt="Start" width={12} height={12} />
+                          <Image src="/assets/icons/icon-calendar-check.svg" alt="Start" width={12} height={12} />
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[9px] text-white/30 uppercase font-black tracking-widest">Odbiór</span>
@@ -574,9 +619,9 @@ export default function ReservationsPage() {
                       </div>
                       <div className="flex items-center gap-4 relative">
                         <div className="w-6 h-6 flex items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                           </svg>
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[9px] text-white/30 uppercase font-black tracking-widest">Zwrot</span>
@@ -585,30 +630,52 @@ export default function ReservationsPage() {
                       </div>
                     </div>
 
-                    {/* Exploitation request trigger - separate row (div to avoid button-in-button) */}
-                    {(er.reservation.state === "in_progress" || er.reservation.state === "completed") && (
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExploitationModal({ id: er.reservation.id, name: `${er.makeName} ${er.modelName}` });
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
+                    {/* Przyciski Akcji (Rozpocznij, Zakończ, Zgłoś) */}
+                    <div className="flex flex-col gap-2">
+                      {er.reservation.state === "accepted" && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleStartReservation(e, er.reservation.id)}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                        >
+                          Rozpocznij trasę
+                        </button>
+                      )}
+
+                      {er.reservation.state === "in_progress" && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleEndReservation(e, er.reservation.id)}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 transition-all shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                        >
+                          Zakończ trasę
+                        </button>
+                      )}
+
+                      {(er.reservation.state === "in_progress" || er.reservation.state === "completed") && (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
                             e.stopPropagation();
                             setExploitationModal({ id: er.reservation.id, name: `${er.makeName} ${er.modelName}` });
-                          }
-                        }}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl bg-amber-500/5 text-amber-400 border border-amber-500/15 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all cursor-pointer"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        Zgłoś eksploatację
-                      </div>
-                    )}
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setExploitationModal({ id: er.reservation.id, name: `${er.makeName} ${er.modelName}` });
+                            }
+                          }}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl bg-amber-500/5 text-amber-400 border border-amber-500/15 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all cursor-pointer"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          Zgłoś eksploatację
+                        </div>
+                      )}
+                    </div>
 
                     <div className="flex items-center justify-between pt-2">
                       <div className="flex items-center gap-3 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5">
@@ -635,7 +702,7 @@ export default function ReservationsPage() {
                       </div>
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -643,185 +710,211 @@ export default function ReservationsPage() {
       </div>
 
       {/* --- PANEL BOCZNY --- */}
-      {panelReservation && (
-        <div className="fixed inset-x-0 top-16 bottom-0 z-[100] flex justify-end" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={closePanel} />
-          <div className="relative z-10 w-full md:w-[35rem] h-full bg-[#0d0f14] shadow-[-20px_0_60px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col border-l border-white/5">
-            {/* Panel Header */}
-            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-purple-400">
-                   <span>Edycja Rezerwacji</span>
-                   <span className="w-1 h-1 rounded-full bg-white/20" />
-                   <span className="text-white/40">#{panelReservation.reservation.id}</span>
+      {panelReservation && (() => {
+        const isCanceled = panelReservation.reservation.state === "canceled";
+        const canBeCanceled = !["completed", "canceled", "in_progress"].includes(panelReservation.reservation.state);
+
+        return (
+          <div className="fixed inset-x-0 top-16 bottom-0 z-[100] flex justify-end" role="dialog" aria-modal="true">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={closePanel} />
+            <div className="relative z-10 w-full md:w-[35rem] h-full bg-[#0d0f14] shadow-[-20px_0_60px_rgba(0,0,0,0.5)] animate-slide-in flex flex-col border-l border-white/5">
+              {/* Panel Header */}
+              <div className="p-8 border-b border-white/5 flex justify-between items-center bg-black/20">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-purple-400">
+                    <span>Edycja Rezerwacji</span>
+                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                    <span className="text-white/40">#{panelReservation.reservation.id}</span>
+                  </div>
+                  <h2 className="text-2xl font-black text-white">
+                    {panelReservation.makeName} {panelReservation.modelName}
+                  </h2>
                 </div>
-                <h2 className="text-2xl font-black text-white">
-                  {panelReservation.makeName} {panelReservation.modelName}
-                </h2>
+                <button onClick={closePanel} className="p-3 rounded-2xl hover:bg-white/5 transition-colors text-white/40 hover:text-white">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <button onClick={closePanel} className="p-3 rounded-2xl hover:bg-white/5 transition-colors text-white/40 hover:text-white">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            {/* Panel Content */}
-            <div className="p-8 flex-1 overflow-y-auto custom-scrollbar space-y-10">
-              {/* Car Visual Placeholder in Panel */}
-              <div className="relative h-48 bg-white/5 rounded-3xl flex items-center justify-center border border-white/5 overflow-hidden group/panel-car">
-                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.1)_0%,transparent_70%)]" />
-                 <svg className="w-24 h-24 text-white/10 group-hover/panel-car:text-purple-500/20 transition-colors duration-500" viewBox="0 0 24 24" fill="currentColor">
+
+              {/* Panel Content */}
+              <div className="p-8 flex-1 overflow-y-auto custom-scrollbar space-y-10">
+                {/* Car Visual Placeholder in Panel */}
+                <div className="relative h-48 bg-white/5 rounded-3xl flex items-center justify-center border border-white/5 overflow-hidden group/panel-car">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.1)_0%,transparent_70%)]" />
+                  <svg className="w-24 h-24 text-white/10 group-hover/panel-car:text-purple-500/20 transition-colors duration-500" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
-                 </svg>
-              </div>
-
-              {/* Editable Fields */}
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Cel rezerwacji</label>
-                  <select
-                    className="input-dark bg-white/5 border-white/10 text-white rounded-2xl py-4 w-full focus:border-purple-500/50"
-                    value={String(formData.purpose || "business")}
-                    onChange={(e) => handleFieldChange("purpose", e.target.value)}
-                  >
-                    {PURPOSE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
+                  </svg>
                 </div>
-              </div>
 
-              {/* REZERVATION CALENDAR */}
-              <div className="space-y-6 pt-4">
-                <div className="flex items-center justify-between">
-                   <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Edytuj Okres Rezerwacji</label>
-                   <div className="flex items-center gap-2">
+                {isCanceled && (
+                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center">
+                    <p className="text-xs font-bold text-red-400">
+                      Ta rezerwacja jest anulowana. Edycja została zablokowana.
+                    </p>
+                  </div>
+                )}
+
+                {/* Editable Fields */}
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Cel rezerwacji</label>
+                    <select
+                      className="input-dark bg-white/5 border-white/10 text-white rounded-2xl py-4 w-full focus:border-purple-500/50"
+                      value={String(formData.purpose || "business")}
+                      onChange={(e) => handleFieldChange("purpose", e.target.value)}
+                      disabled={isCanceled}
+                    >
+                      {PURPOSE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* REZERVATION CALENDAR */}
+                <div className="space-y-6 pt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Edytuj Okres Rezerwacji</label>
+                    <div className="flex items-center gap-2">
                       <button onClick={prevMonth} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white">
-                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path d="M15 19l-7-7 7-7" /></svg>
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path d="M15 19l-7-7 7-7" /></svg>
                       </button>
                       <span className="text-xs font-black uppercase tracking-widest text-white/80 w-32 text-center">
                         {MONTHS_PL[calendarMonth.month]} {calendarMonth.year}
                       </span>
                       <button onClick={nextMonth} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white">
-                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path d="M9 5l7 7-7 7" /></svg>
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path d="M9 5l7 7-7 7" /></svg>
                       </button>
-                   </div>
-                </div>
+                    </div>
+                  </div>
 
-                <div className="bg-black/20 rounded-[2rem] p-6 border border-white/5">
-                   <div className="grid grid-cols-7 mb-4">
+                  <div className="bg-black/20 rounded-[2rem] p-6 border border-white/5">
+                    <div className="grid grid-cols-7 mb-4">
                       {DAYS_PL.map(d => <div key={d} className="text-[9px] font-black uppercase text-white/20 text-center">{d}</div>)}
-                   </div>
-                   <div className="grid grid-cols-7 gap-1">
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
                       {Array.from({ length: firstDayOfMonth(calendarMonth.year, calendarMonth.month) }).map((_, i) => (
                         <div key={`empty-${i}`} />
                       ))}
                       {renderCalendar()}
-                   </div>
-                </div>
-
-                {/* Hourly Picker */}
-                {selectingTimeFor && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-purple-400">
-                        Wybierz godzinę {selectingTimeFor === "start" ? "rozpoczęcia" : "zakończenia"}
-                      </label>
-                      <button 
-                        onClick={() => setSelectingTimeFor(null)}
-                        className="text-[10px] font-bold text-white/40 hover:text-white transition-colors"
-                      >
-                        Anuluj
-                      </button>
                     </div>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                      {Array.from({ length: 24 }).map((_, i) => {
-                        const hourDate = new Date(selectingTimeFor === "start" ? selectedStart! : selectedEnd!);
-                        hourDate.setHours(i, 0, 0, 0);
-                        
-                        const isPast = hourDate < new Date();
-                        const isOccupied = existingReservations.some(r => {
-                           const s = new Date(r.date_start_planned);
-                           const e = new Date(r.date_end_planned);
-                           return hourDate >= s && hourDate < e;
-                        });
-                        const isSelected = selectingTimeFor === "start" 
-                           ? (selectedStart && selectedStart.getHours() === i)
-                           : (selectedEnd && selectedEnd.getHours() === i);
+                  </div>
 
-                        return (
-                          <button
-                            key={i}
-                            type="button"
-                            disabled={isPast || isOccupied}
-                            onClick={() => handleTimeClick(i)}
-                            className={`py-2.5 rounded-xl text-[10px] font-black transition-all border
-                              ${isPast || isOccupied 
-                                ? "bg-white/5 border-transparent text-white/10 cursor-not-allowed" 
-                                : "bg-white/5 border-white/5 text-white/60 hover:border-purple-500/50 hover:text-white"}
+                  {/* Hourly Picker */}
+                  {selectingTimeFor && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-purple-400">
+                          Wybierz godzinę {selectingTimeFor === "start" ? "rozpoczęcia" : "zakończenia"}
+                        </label>
+                        <button
+                          onClick={() => setSelectingTimeFor(null)}
+                          className="text-[10px] font-bold text-white/40 hover:text-white transition-colors"
+                        >
+                          Anuluj
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        {Array.from({ length: 24 }).map((_, i) => {
+                          const hourDate = new Date(selectingTimeFor === "start" ? selectedStart! : selectedEnd!);
+                          hourDate.setHours(i, 0, 0, 0);
+
+                          const isPast = hourDate < new Date();
+                          const isOccupied = existingReservations.some(r => {
+                            const s = new Date(r.date_start_planned);
+                            const e = new Date(r.date_end_planned);
+                            return hourDate >= s && hourDate < e;
+                          });
+                          const isSelected = selectingTimeFor === "start"
+                            ? (selectedStart && selectedStart.getHours() === i)
+                            : (selectedEnd && selectedEnd.getHours() === i);
+
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              disabled={isPast || isOccupied}
+                              onClick={() => handleTimeClick(i)}
+                              className={`py-2.5 rounded-xl text-[10px] font-black transition-all border
+                              ${isPast || isOccupied
+                                  ? "bg-white/5 border-transparent text-white/10 cursor-not-allowed"
+                                  : "bg-white/5 border-white/5 text-white/60 hover:border-purple-500/50 hover:text-white"}
                               ${isSelected ? "!bg-purple-500 !border-purple-500 !text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]" : ""}
                             `}
-                          >
-                            {String(i).padStart(2, '0')}:00
-                          </button>
-                        );
-                      })}
+                            >
+                              {String(i).padStart(2, '0')}:00
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <div className="flex items-center justify-between px-2 pt-2">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Wybrany Okres</span>
-                    <span className="text-xs font-bold text-white/80">
-                      {selectedStart ? `${selectedStart.toLocaleDateString('pl-PL')} ${String(selectedStart.getHours()).padStart(2, '0')}:00` : "..." } — {selectedEnd ? `${selectedEnd.toLocaleDateString('pl-PL')} ${String(selectedEnd.getHours()).padStart(2, '0')}:00` : "..."}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Łączny Koszt</span>
-                    <div className="text-xl font-black text-white">
-                      {selectedStart && selectedEnd 
-                        ? `${formData.purpose === "business" ? 0 : Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000*60*60*24))) * 150} PLN` 
-                        : "—"}
+                  <div className="flex items-center justify-between px-2 pt-2">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Wybrany Okres</span>
+                      <span className="text-xs font-bold text-white/80">
+                        {selectedStart ? `${selectedStart.toLocaleDateString('pl-PL')} ${String(selectedStart.getHours()).padStart(2, '0')}:00` : "..."} — {selectedEnd ? `${selectedEnd.toLocaleDateString('pl-PL')} ${String(selectedEnd.getHours()).padStart(2, '0')}:00` : "..."}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-white/30">Łączny Koszt</span>
+                      <div className="text-xl font-black text-white">
+                        {selectedStart && selectedEnd
+                          ? `${formData.purpose === "business" ? 0 : Math.max(1, Math.ceil((selectedEnd.getTime() - selectedStart.getTime()) / (1000 * 60 * 60 * 24))) * 150} PLN`
+                          : "—"}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="p-8 border-t border-white/5 bg-black/20 space-y-4">
-              <button 
-                type="submit" 
-                form="reservation-form" 
-                onClick={handleSubmit}
-                disabled={isSubmitting} 
-                className="btn-primary w-full py-5 rounded-2xl shadow-[0_10px_30px_rgba(139,92,246,0.3)] text-base font-black uppercase tracking-widest"
-              >
-                {isSubmitting ? "Synchronizacja..." : "Zapisz zmiany"}
-              </button>
-              
-              {!showDeleteConfirm ? (
-                <button 
-                  type="button" 
-                  onClick={() => setShowDeleteConfirm(true)} 
-                  className="w-full py-4 text-xs font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors"
-                >
-                  Usuń rezerwację z systemu
-                </button>
-              ) : (
-                <div className="p-6 rounded-3xl bg-red-500/5 border border-red-500/10 space-y-4 animate-in fade-in zoom-in duration-300">
-                  <p className="text-sm font-bold text-red-400 text-center">Nieodwracalnie usunąć rezerwację?</p>
-                  <div className="flex gap-3">
-                    <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 rounded-xl bg-white/5 text-xs font-bold hover:bg-white/10 transition-colors">Anuluj</button>
-                    <button onClick={handleDelete} disabled={isDeleting} className="flex-1 py-3 rounded-xl bg-red-500 text-xs font-black text-white hover:bg-red-600 shadow-lg shadow-red-500/20">{isDeleting ? "Usuwanie..." : "Tak, usuń"}</button>
+              <div className="p-8 border-t border-white/5 bg-black/20 space-y-4">
+                {!isCanceled && (
+                  <button
+                    type="submit"
+                    form="reservation-form"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="btn-primary w-full py-5 rounded-2xl shadow-[0_10px_30px_rgba(139,92,246,0.3)] text-base font-black uppercase tracking-widest disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Synchronizacja..." : "Zapisz zmiany"}
+                  </button>
+                )}
+
+                {canBeCanceled && (
+                  <button
+                    type="button"
+                    onClick={handleCancelReservation}
+                    className="w-full py-4 text-xs font-black uppercase tracking-widest text-orange-400/60 hover:text-orange-400 transition-colors border border-transparent hover:border-orange-500/20 rounded-xl"
+                  >
+                    Anuluj tę rezerwację
+                  </button>
+                )}
+
+                {!showDeleteConfirm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full py-4 text-xs font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20 rounded-xl"
+                  >
+                    Usuń rezerwację z systemu
+                  </button>
+                ) : (
+                  <div className="p-6 rounded-3xl bg-red-500/5 border border-red-500/10 space-y-4 animate-in fade-in zoom-in duration-300">
+                    <p className="text-sm font-bold text-red-400 text-center">Nieodwracalnie usunąć rezerwację?</p>
+                    <div className="flex gap-3">
+                      <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 rounded-xl bg-white/5 text-xs font-bold hover:bg-white/10 transition-colors text-white">Cofnij</button>
+                      <button onClick={handleDelete} disabled={isDeleting} className="flex-1 py-3 rounded-xl bg-red-500 text-xs font-black text-white hover:bg-red-600 shadow-lg shadow-red-500/20">{isDeleting ? "Usuwanie..." : "Tak, usuń"}</button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Exploitation Request Modal */}
       <ExploitationRequestModal
