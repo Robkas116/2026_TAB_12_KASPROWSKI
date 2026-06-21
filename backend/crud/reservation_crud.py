@@ -181,22 +181,22 @@ def update_reservation(
         setattr(db_reservation, field, value)
 
     # Sync performance state if it is a service reservation
-    from models.reservation_model import Purpose_enum
-    if db_reservation.purpose in (Purpose_enum.SERVICE, "service"):
-        from models.is_performed_model import IsPerformed, State as IsPerformedState
-        ips = session.scalars(
-            select(IsPerformed).where(IsPerformed.reservation_id == db_reservation.id)
-        ).all()
-        for ip in ips:
-            if db_reservation.state == Reservation_state_enum.CANCELED:
-                ip.state = IsPerformedState.CANCELED
-            elif db_reservation.state == Reservation_state_enum.CREATED:
-                ip.state = IsPerformedState.AWAITING
-            elif db_reservation.state == Reservation_state_enum.IN_PROGRESS:
-                ip.state = IsPerformedState.PERFORMED
-            elif db_reservation.state == Reservation_state_enum.COMPLETED:
-                ip.state = IsPerformedState.COMPLETED
-            session.add(ip)
+    # Sync performance state for ALL linked actions (service and exploitation)
+    from models.is_performed_model import IsPerformed, State as IsPerformedState
+    ips = session.scalars(
+        select(IsPerformed).where(IsPerformed.reservation_id == db_reservation.id)
+    ).all()
+    
+    for ip in ips:
+        if db_reservation.state == Reservation_state_enum.CANCELED:
+            ip.state = IsPerformedState.CANCELED
+        elif db_reservation.state == Reservation_state_enum.CREATED:
+            ip.state = IsPerformedState.AWAITING
+        elif db_reservation.state == Reservation_state_enum.IN_PROGRESS:
+            ip.state = IsPerformedState.PERFORMED
+        elif db_reservation.state == Reservation_state_enum.COMPLETED:
+            ip.state = IsPerformedState.COMPLETED
+        session.add(ip)
 
     session.add(db_reservation)
     session.commit()

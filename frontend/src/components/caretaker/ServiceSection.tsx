@@ -24,9 +24,10 @@ import type { ActionType } from "@/types/action_types";
 interface ServiceSectionProps {
   vehicleId: number;
   toast: (type: "success" | "error", message: string) => void;
+  onRefresh: () => void;
 }
 
-export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps) {
+export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceSectionProps) {
   const [services, setServices] = useState<PanelReservationPublic[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -164,7 +165,7 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
           setSelectedActionId(data.action_id);
           setPrice(data.price);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   };
 
@@ -330,6 +331,7 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
       }
       closePanel();
       fetchServices();
+      onRefresh();
     } catch (err) {
       toast("error", err instanceof Error ? err.message : "Błąd.");
     } finally {
@@ -346,6 +348,7 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
       setShowDeleteConfirm(false);
       closePanel();
       fetchServices();
+      onRefresh();
     } catch (err) {
       toast("error", err instanceof Error ? err.message : "Błąd anulowania rezerwacji.");
     } finally {
@@ -361,6 +364,7 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
       setShowDeleteConfirm(false);
       closePanel();
       fetchServices();
+      onRefresh();
     } catch (err) {
       toast("error", err instanceof Error ? err.message : "Błąd usuwania serwisu.");
     } finally {
@@ -374,6 +378,7 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
       await caretakerPanelApi.updateExploitation(vehicleId, isPerformedId, { state: newState });
       toast("success", "Status wykonania serwisu został zaktualizowany.");
       fetchServices();
+      onRefresh();
     } catch (err) {
       toast("error", err instanceof Error ? err.message : "Błąd aktualizacji statusu serwisu.");
     } finally {
