@@ -228,7 +228,9 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
       setSelectingTimeFor("start");
       setFieldErrors({});
     } else {
-      if (d < selectedStart) {
+      const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const startDate = new Date(selectedStart.getFullYear(), selectedStart.getMonth(), selectedStart.getDate());
+      if (dDate < startDate) {
         setSelectedStart(d);
         setSelectingTimeFor("start");
       } else {
@@ -781,6 +783,8 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
                           const e = new Date(r.date_end_planned);
                           return hourDate >= s && hourDate < e;
                         });
+                        const isInvalidEnd = selectingTimeFor === "end" && selectedStart && hourDate <= selectedStart;
+                        const isDisabled = isPast || isOccupied || isInvalidEnd;
                         const isSelected =
                           selectingTimeFor === "start"
                             ? selectedStart && selectedStart.getHours() === i
@@ -790,10 +794,10 @@ export default function ServiceSection({ vehicleId, toast }: ServiceSectionProps
                           <button
                             key={i}
                             type="button"
-                            disabled={isPast || isOccupied}
+                            disabled={isDisabled}
                             onClick={() => handleTimeClick(i)}
                             className={`py-2.5 rounded-xl text-[10px] font-black transition-all border
-                              ${isPast || isOccupied
+                              ${isDisabled
                                 ? "bg-white/5 border-transparent text-white/10 cursor-not-allowed"
                                 : "bg-white/5 border-white/5 text-white/60 hover:border-purple-500/50 hover:text-white"}
                               ${isSelected
