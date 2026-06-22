@@ -612,7 +612,7 @@ export default function VehiclesPage() {
                            const e = new Date(r.date_end_planned);
                            return hourDate >= s && hourDate < e;
                         });
-                        const isInvalidEnd = selectingTimeFor === "end" && selectedStart && hourDate <= selectedStart;
+                        const isInvalidEnd = selectingTimeFor === "end" && !!selectedStart && hourDate <= selectedStart;
                         const isDisabled = isPast || isOccupied || isInvalidEnd;
                         const isSelected = selectingTimeFor === "start" 
                            ? (selectedStart && selectedStart.getHours() === i)
