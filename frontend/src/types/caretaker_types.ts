@@ -9,7 +9,9 @@ export interface CaretakerPublic extends CaretakerBase {
     date_end: string | null;
 }
 
-export interface CaretakerCreate extends CaretakerBase {}
+export interface CaretakerCreate extends CaretakerBase {
+    date_end?: string | null;
+}
 
 export interface CaretakerUpdate {
     worker_id?: number | null;

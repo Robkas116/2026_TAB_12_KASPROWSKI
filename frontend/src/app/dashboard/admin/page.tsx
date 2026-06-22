@@ -117,79 +117,73 @@ export default function Dashboard() {
 
     const handleAddSubmit = async (normalizedData: Record<string, unknown>) => {
         setSaving(true);
+        setError(null);
         try {
             const preparedData: Record<string, any> = { ...normalizedData };
 
             Object.keys(preparedData).forEach((key) => {
                 const value = preparedData[key];
-                if (typeof value === "string") {
-                    if (key.endsWith("_id")) {
-                        preparedData[key] = value.trim() !== "" ? Number(value) : null;
-                    }
-                    if (key === "price" || key === "distance") {
-                        preparedData[key] = value.trim() !== "" ? Number(value) : 0;
-                    }
-                    if (key === "date_start" || key === "date") {
-                        preparedData[key] = value.trim() !== "" ? value.substring(0, 10) : null;
+                
+                if (key.endsWith("_id")) {
+                    preparedData[key] = value !== null && String(value).trim() !== "" ? Number(value) : null;
+                } else if (key === "price" || key === "distance") {
+                    preparedData[key] = value !== null && String(value).trim() !== "" ? Number(value) : 0;
+                } else if (key === "date_start" || key === "date" || key === "date_end") {
+                    if (!value || String(value).trim() === "") {
+                        preparedData[key] = null;
+                    } else {
+                        const d = new Date(value as any);
+                        if (!isNaN(d.getTime())) {
+                            const yyyy = d.getFullYear();
+                            const mm = String(d.getMonth() + 1).padStart(2, '0');
+                            const dd = String(d.getDate()).padStart(2, '0');
+                            preparedData[key] = `${yyyy}-${mm}-${dd}`;
+                        } else {
+                            preparedData[key] = null;
+                        }
                     }
                 }
-
             });
+
             switch (activeTab) {
                 case "Makes":
-
-                    await makeApi.create(normalizedData as any);
+                    await makeApi.create(preparedData as any);
                     break;
-
                 case "Models":
-
-                    await vehmodelApi.create(normalizedData as any);
+                    await vehmodelApi.create(preparedData as any);
                     break;
-
                 case "Equipment":
-                    await equipmentApi.create(normalizedData as any);
+                    await equipmentApi.create(preparedData as any);
                     break;
-
                 case "Set_Of_Equipment":
-                    await setofequipmentApi.create(normalizedData as any);
+                    await setofequipmentApi.create(preparedData as any);
                     break;
-
                 case "Versions":
-                    await versionApi.create(normalizedData as any);
+                    await versionApi.create(preparedData as any);
                     break;
-
                 case "Vehicles":
-                    await vehicleApi.create(normalizedData as any);
+                    await vehicleApi.create(preparedData as any);
                     break;
-
-
                 case "Workers":
-                    await workerApi.create(normalizedData as any);
-                    break;
-
+                    await workerApi.create(preparedData as any);
+                    break;  
                 case "Caretakers":
-                    await caretakerApi.create(normalizedData as any);
+                    await caretakerApi.create(preparedData as any);
                     break;
-
                 case "Reservations":
-                    await reservationApi.create(normalizedData as any);
+                    await reservationApi.create(preparedData as any);
                     break;
-
                 case "Actions":
-                    await actionApi.create(normalizedData as any);
+                    await actionApi.create(preparedData as any);
                     break;
                 case "IsPerformed":
-                    await isPerformedApi.create(normalizedData as any);
+                    await isPerformedApi.create(preparedData as any);
                     break;
-
             }
-
-
-            setIsAddModalOpen(false);
-            await loadData(activeTab);
+            setIsAddModalOpen(false); 
+            await loadData(activeTab); 
         } catch (err: any) {
-
-            alert(err.message || "There was a problem while adding the record.");
+            setError(err.message || "Wystąpił błąd podczas dodawania rekordu.");
         } finally {
             setSaving(false);
         }
@@ -304,51 +298,77 @@ export default function Dashboard() {
         }
     };
 
-    const handleEditSubmit = async (updatedData: Record<string, unknown>) => {
+const handleEditSubmit = async (updatedData: Record<string, unknown>) => {
         if (!itemToEdit || typeof itemToEdit !== "object" || !("id" in itemToEdit)) return;
         setSaving(true);
         try {
+            const preparedData: Record<string, any> = { ...updatedData };
+
+            Object.keys(preparedData).forEach((key) => {
+                const value = preparedData[key];
+                
+                if (key.endsWith("_id")) {
+                    preparedData[key] = value !== null && String(value).trim() !== "" ? Number(value) : null;
+                } else if (key === "price" || key === "distance") {
+                    preparedData[key] = value !== null && String(value).trim() !== "" ? Number(value) : 0;
+                } else if (key === "date_start" || key === "date" || key === "date_end") {
+                    if (!value || String(value).trim() === "") {
+                        preparedData[key] = null;
+                    } else {
+                        const d = new Date(value as any);
+                        if (!isNaN(d.getTime())) {
+                            const yyyy = d.getFullYear();
+                            const mm = String(d.getMonth() + 1).padStart(2, '0');
+                            const dd = String(d.getDate()).padStart(2, '0');
+                            preparedData[key] = `${yyyy}-${mm}-${dd}`;
+                        } else {
+                            preparedData[key] = null;
+                        }
+                    }
+                }
+            });
+
             const id = (itemToEdit as Record<string, number>).id;
             switch (activeTab) {
                 case "Makes":
-                    await makeApi.update(id, updatedData);
+                    await makeApi.update(id, preparedData as any);
                     break;
                 case "Models":
-                    await vehmodelApi.update(id, updatedData);
+                    await vehmodelApi.update(id, preparedData as any);
                     break;
                 case "Equipment":
-                    await equipmentApi.update(id, updatedData);
+                    await equipmentApi.update(id, preparedData as any);
                     break;
                 case "Set_Of_Equipment":
-                    await setofequipmentApi.update(id, updatedData);
+                    await setofequipmentApi.update(id, preparedData as any);
                     break;
                 case "Versions":
-                    await versionApi.update(id, updatedData);
+                    await versionApi.update(id, preparedData as any);
                     break;
                 case "Vehicles":
-                    await vehicleApi.update(id, updatedData);
+                    await vehicleApi.update(id, preparedData as any);
                     break;
                 case "Workers":
-                    await workerApi.update(id, updatedData);
+                    await workerApi.update(id, preparedData as any);
                     break;
                 case "Caretakers":
-                    await caretakerApi.update(id, updatedData);
+                    await caretakerApi.update(id, preparedData as any);
                     break;
                 case "Reservations":
-                    await reservationApi.update(id, updatedData);
+                    await reservationApi.update(id, preparedData as any);
                     break;
                 case "Actions":
-                    await actionApi.update(id, updatedData);
+                    await actionApi.update(id, preparedData as any);
                     break;
                 case "IsPerformed":
-                    await isPerformedApi.update(id, updatedData);
+                    await isPerformedApi.update(id, preparedData as any);
                     break;
             }
             setIsEditModalOpen(false);
             setItemToEdit(null);
             await loadData(activeTab);
         } catch (err: any) {
-            alert(err.message || "There was a problem while updating the record.");
+            setError(err.message || "Nie udało się zaktualizować rekordu.");
         } finally {
             setSaving(false);
         }
@@ -475,7 +495,7 @@ export default function Dashboard() {
                                     activeTab === "Versions" ? { destination: "" } :
                                         activeTab === "Vehicles" ? { veh_model_id: "", version_id: "", description: "" } :
                                             activeTab === "Workers" ? { name: "", email: "", password: "" } :
-                                                activeTab === "Caretakers" ? { worker_id: "", vehicle_id: "", date_start: "" } :
+                                                activeTab === "Caretakers" ? { worker_id: "", vehicle_id: "", date_start: "", date_end: "" } :
 
                                                     activeTab === "Reservations" ? { date_start_planned: "", date_end_planned: "", price: "", purpose: "business", vehicle_id: "", worker_id: "" } :
                                                         activeTab === "Actions" ? { name: "", type: "service" } :

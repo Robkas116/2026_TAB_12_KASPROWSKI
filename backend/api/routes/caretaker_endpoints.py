@@ -25,6 +25,9 @@ def create_caretaker(caretaker_in: CaretakerCreate, db: Session = Depends(get_db
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Worker (worker_id) with set id does not exist.",
         )
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
 @router.get("/", response_model=CaretakersPublic)
@@ -65,9 +68,14 @@ def update_caretaker(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Caretaker not found."
         )
-    return caretaker_crud.update_caretaker(
-        session=db, db_caretaker=db_caretaker, caretaker_in=caretaker_in
-    )
+
+    try:
+        return caretaker_crud.update_caretaker(
+            session=db, db_caretaker=db_caretaker, caretaker_in=caretaker_in
+        )
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
 @router.delete("/{caretaker_id}", response_model=dict[str, str])

@@ -2,7 +2,7 @@ from typing import Optional
 from datetime import date, datetime
 from sqlalchemy import ForeignKey, Integer, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from database.database import Base
 
@@ -42,7 +42,18 @@ class CaretakerBase(BaseModel):
 
 
 class CaretakerCreate(CaretakerBase):
-    pass
+    date_end: Optional[date] = None
+
+    @field_validator("date_start", "date_end", mode="before")
+    @classmethod
+    def normalize_date_fields(cls, value: Optional[date | datetime]) -> Optional[date]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, str):
+            return value.split("T")[0].split(" ")[0]  
+        return value
 
 
 class CaretakerUpdate(BaseModel):
@@ -50,6 +61,15 @@ class CaretakerUpdate(BaseModel):
     date_start: Optional[date] = None
     date_end: Optional[date] = None
     vehicle_id: Optional[int] = None
+
+    @field_validator("date_start", "date_end", mode="before")
+    @classmethod
+    def normalize_date_fields(cls, value: Optional[date | datetime]) -> Optional[date]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value.date()
+        return value
 
 
 class CaretakerPublic(CaretakerBase):
