@@ -626,7 +626,7 @@ export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceS
                 </button>
               </div>
 
-              {/* Content */}
+{/* Content */}
               <form onSubmit={handleSubmit} className="p-8 flex-1 overflow-y-auto custom-scrollbar space-y-10">
 
                 {isCanceled && (
@@ -652,27 +652,78 @@ export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceS
                   />
                 </div>
 
-                <>
-                  {/* Action Dropdown */}
+                {/* Action Dropdown */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                    Czynność serwisowa
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedActionId || ""}
+                      onChange={(e) => setSelectedActionId(Number(e.target.value))}
+                      disabled={loadingActions || isCanceled}
+                      className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="" disabled className="bg-[#0d0f14]">
+                        {loadingActions ? "Ładowanie czynności..." : "Wybierz czynność z listy..."}
+                      </option>
+                      {actions.map((action) => (
+                        <option key={action.id} value={action.id} className="bg-[#0d0f14]">
+                          {action.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                  {fieldErrors.action && (
+                    <p className="text-xs text-red-400 mt-1">{fieldErrors.action}</p>
+                  )}
+                </div>
+
+                {/* Price input */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+                    Cena serwisu
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={price || ""}
+                      onChange={(e) => setPrice(Number(e.target.value))}
+                      disabled={isCanceled}
+                      placeholder="0"
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30 font-medium text-sm">
+                      PLN
+                    </div>
+                  </div>
+                  {fieldErrors.price && (
+                    <p className="text-xs text-red-400 mt-1">{fieldErrors.price}</p>
+                  )}
+                </div>
+
+                {editingService && (
                   <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                      Czynność serwisowa
+                      Stan realizacji serwisu
                     </label>
                     <div className="relative">
                       <select
-                        value={selectedActionId || ""}
-                        onChange={(e) => setSelectedActionId(Number(e.target.value))}
-                        disabled={loadingActions || isCanceled}
+                        value={perfState}
+                        onChange={(e) => setPerfState(e.target.value as State)}
+                        disabled={isCanceled}
                         className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <option value="" disabled className="bg-[#0d0f14]">
-                          {loadingActions ? "Ładowanie czynności..." : "Wybierz czynność z listy..."}
-                        </option>
-                        {actions.map((action) => (
-                          <option key={action.id} value={action.id} className="bg-[#0d0f14]">
-                            {action.name}
-                          </option>
-                        ))}
+                        <option value={State.AWAITING} className="bg-[#0d0f14]">Zaplanowany</option>
+                        <option value={State.PERFORMED} className="bg-[#0d0f14]">Wykonany</option>
+                        <option value={State.COMPLETED} className="bg-[#0d0f14]">Zakończony</option>
                       </select>
                       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -680,58 +731,39 @@ export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceS
                         </svg>
                       </div>
                     </div>
-                    {fieldErrors.action && (
-                      <p className="text-xs text-red-400 mt-1">{fieldErrors.action}</p>
-                    )}
                   </div>
+                )}
 
-                  {/* Price input */}
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                      Cena serwisu
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={price || ""}
-                        onChange={(e) => setPrice(Number(e.target.value))}
-                        disabled={isCanceled}
-                        placeholder="0"
-                        className="w-full bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      />
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30 font-medium text-sm">
-                        PLN
+                <div className="bg-black/20 rounded-[2rem] p-6 border border-white/5">
+                  <div className="grid grid-cols-7 mb-4">
+                    {DAYS_PL.map((d) => (
+                      <div key={d} className="text-[9px] font-black uppercase text-white/20 text-center">
+                        {d}
                       </div>
-                    </div>
-                    {fieldErrors.price && (
-                      <p className="text-xs text-red-400 mt-1">{fieldErrors.price}</p>
-                    )}
+                    ))}
                   </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {Array.from({ length: firstDayOfMonth(calendarMonth.year, calendarMonth.month) }).map((_, i) => (
+                      <div key={`empty-${i}`} />
+                    ))}
+                    {renderCalendar()}
+                  </div>
+                </div>
 
-                  {editingService && (
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                        Stan realizacji serwisu
+                {/* Hour picker (identical to vehicles page) */}
+                {selectingTimeFor && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-purple-400">
+                        Wybierz godzinę {selectingTimeFor === "start" ? "rozpoczęcia" : "zakończenia"}
                       </label>
-                      <div className="relative">
-                        <select
-                          value={perfState}
-                          onChange={(e) => setPerfState(e.target.value as State)}
-                          disabled={isCanceled}
-                          className="w-full appearance-none bg-white/5 border border-white/10 text-white rounded-2xl py-4 px-5 text-sm font-medium focus:outline-none focus:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <option value={State.AWAITING} className="bg-[#0d0f14]">Zaplanowany</option>
-                          <option value={State.PERFORMED} className="bg-[#0d0f14]">Wykonany</option>
-                          <option value={State.COMPLETED} className="bg-[#0d0f14]">Zakończony</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5 text-white/30">
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectingTimeFor(null)}
+                        className="text-[10px] font-bold text-white/40 hover:text-white transition-colors"
+                      >
+                        Anuluj
+                      </button>
                     </div>
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                       {Array.from({ length: 24 }).map((_, i) => {
@@ -748,7 +780,7 @@ export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceS
                           return hourDate >= s && hourDate < e;
                         });
                         const isInvalidEnd = selectingTimeFor === "end" && !!selectedStart && hourDate <= selectedStart;
-                        const isDisabled = isPast || isOccupied || isInvalidEnd;
+                        const isDisabled = isPast || isOccupied || isInvalidEnd || isCanceled;
                         const isSelected =
                           selectingTimeFor === "start"
                             ? selectedStart && selectedStart.getHours() === i
@@ -775,99 +807,23 @@ export default function ServiceSection({ vehicleId, toast, onRefresh }: ServiceS
                       })}
                     </div>
                   </div>
+                )}
 
-                  <div className="bg-black/20 rounded-[2rem] p-6 border border-white/5">
-                    <div className="grid grid-cols-7 mb-4">
-                      {DAYS_PL.map((d) => (
-                        <div key={d} className="text-[9px] font-black uppercase text-white/20 text-center">
-                          {d}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-7 gap-1">
-                      {Array.from({ length: firstDayOfMonth(calendarMonth.year, calendarMonth.month) }).map((_, i) => (
-                        <div key={`empty-${i}`} />
-                      ))}
-                      {renderCalendar()}
-                    </div>
-                  </div>
-
-                  {/* Hour picker (identical to vehicles page) */}
-                  {selectingTimeFor && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-purple-400">
-                          Wybierz godzinę {selectingTimeFor === "start" ? "rozpoczęcia" : "zakończenia"}
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setSelectingTimeFor(null)}
-                          className="text-[10px] font-bold text-white/40 hover:text-white transition-colors"
-                        >
-                          Anuluj
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                        {Array.from({ length: 24 }).map((_, i) => {
-                          const hourDate = new Date(
-                            selectingTimeFor === "start" ? selectedStart! : selectedEnd!,
-                          );
-                          hourDate.setHours(i, 0, 0, 0);
-
-                          const isPast = hourDate < new Date();
-                          const isOccupied = existingReservations.some((r) => {
-                            if (editingService && r.id === editingService.id) return false;
-                            const s = new Date(r.date_start_planned);
-                            const e = new Date(r.date_end_planned);
-                            return hourDate >= s && hourDate < e;
-                          });
-                          const isSelected =
-                            selectingTimeFor === "start"
-                              ? selectedStart && selectedStart.getHours() === i
-                              : selectedEnd && selectedEnd.getHours() === i;
-
-                          // DODANO: Blokada godziny, jeśli jest zajęta, z przeszłości lub serwis jest anulowany
-                          const isDisabledTime = isPast || isOccupied || isCanceled;
-
-                          return (
-                            <button
-                              key={i}
-                              type="button"
-                              disabled={isDisabledTime}
-                              onClick={() => handleTimeClick(i)}
-                              className={`py-2.5 rounded-xl text-[10px] font-black transition-all border
-                                ${isDisabledTime
-                                  ? "bg-white/5 border-transparent text-white/10 cursor-not-allowed"
-                                  : "bg-white/5 border-white/5 text-white/60 hover:border-purple-500/50 hover:text-white"}
-                                ${isSelected
-                                  ? "!bg-purple-500 !border-purple-500 !text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]"
-                                  : ""}
-                              `}
-                            >
-                              {String(i).padStart(2, "0")}:00
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Selected period display */}
-                  <div className="flex items-center justify-between px-2 pt-2">
-                    <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
-                        Wybrany Okres
-                      </span>
-                      <span className="text-xs font-bold text-white/80">
-                        {selectedStart
-                          ? `${selectedStart.toLocaleDateString("pl-PL")} ${String(selectedStart.getHours()).padStart(2, "0")}:00`
-                          : "..."}{" "}
-                        —{" "}
-                        {selectedEnd
-                          ? `${selectedEnd.toLocaleDateString("pl-PL")} ${String(selectedEnd.getHours()).padStart(2, "0")}:00`
-                          : "..."}
-                      </span>
-                    </div>
+                {/* Selected period display */}
+                <div className="flex items-center justify-between px-2 pt-2">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                      Wybrany Okres
+                    </span>
+                    <span className="text-xs font-bold text-white/80">
+                      {selectedStart
+                        ? `${selectedStart.toLocaleDateString("pl-PL")} ${String(selectedStart.getHours()).padStart(2, "0")}:00`
+                        : "..."}{" "}
+                      —{" "}
+                      {selectedEnd
+                        ? `${selectedEnd.toLocaleDateString("pl-PL")} ${String(selectedEnd.getHours()).padStart(2, "0")}:00`
+                        : "..."}
+                    </span>
                   </div>
                 </div>
               </form>
