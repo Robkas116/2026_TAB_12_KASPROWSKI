@@ -59,11 +59,18 @@ export default function CaretakerVehiclePage() {
     }
   }, [vehicleId]);
 
+
+
   useEffect(() => {
     setLoading(true);
     Promise.all([fetchVehicle(), fetchReservations(), fetchExploitations()])
       .finally(() => setLoading(false));
   }, [fetchVehicle, fetchReservations, fetchExploitations]);
+
+  const refreshData = useCallback(() => {
+    fetchReservations();
+    fetchExploitations();
+  }, [fetchReservations, fetchExploitations]);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "services", label: "Serwisy" },
@@ -170,11 +177,10 @@ export default function CaretakerVehiclePage() {
             key={tab.key}
             type="button"
             onClick={() => setActiveTab(tab.key)}
-            className={`relative px-6 py-3 text-xs font-black uppercase tracking-widest transition-all ${
-              activeTab === tab.key
-                ? "text-cyan-400"
-                : "text-white/30 hover:text-white/60"
-            }`}
+            className={`relative px-6 py-3 text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.key
+              ? "text-cyan-400"
+              : "text-white/30 hover:text-white/60"
+              }`}
           >
             {tab.label}
             {activeTab === tab.key && (
@@ -186,13 +192,13 @@ export default function CaretakerVehiclePage() {
 
       {/* Tab Content */}
       {activeTab === "services" && (
-        <ServiceSection vehicleId={vehicleId} toast={toast} />
+        <ServiceSection vehicleId={vehicleId} toast={toast} onRefresh={refreshData} />
       )}
       {activeTab === "reservations" && (
         <ReservationsSection
           vehicleId={vehicleId}
           reservations={reservations}
-          onRefresh={fetchReservations}
+          onRefresh={refreshData}
           toast={toast}
         />
       )}
@@ -200,7 +206,7 @@ export default function CaretakerVehiclePage() {
         <ExploitationSection
           vehicleId={vehicleId}
           exploitations={exploitations}
-          onRefresh={fetchExploitations}
+          onRefresh={refreshData}
           toast={toast}
         />
       )}

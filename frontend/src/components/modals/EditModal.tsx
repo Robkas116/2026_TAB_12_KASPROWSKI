@@ -50,9 +50,13 @@ export default function EditModal({
             const year = d.getFullYear();
             const month = String(d.getMonth() + 1).padStart(2, "0");
             const day = String(d.getDate()).padStart(2, "0");
-            const hours = String(d.getHours()).padStart(2, "0");
-            const minutes = String(d.getMinutes()).padStart(2, "0");
-            clean[key] = `${year}-${month}-${day}T${hours}:${minutes}`;
+            if (entityType === "IsPerformed") {
+              clean[key] = `${year}-${month}-${day}`;
+            } else {
+              const hours = String(d.getHours()).padStart(2, "0");
+              const minutes = String(d.getMinutes()).padStart(2, "0");
+              clean[key] = `${year}-${month}-${day}T${hours}:${minutes}`;
+            }
           } else {
             clean[key] = value;
           }
@@ -64,7 +68,7 @@ export default function EditModal({
       setFieldErrors({});
       setSubmitted(false);
     }
-  }, [initialData]);
+  }, [initialData, entityType]);
 
   useEffect(() => {
     if (entityType !== "Set_Of_Equipment" && entityType !== "Vehicles") return;
