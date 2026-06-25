@@ -14,7 +14,7 @@ import { setofequipmentApi } from "@/lib/api/set_of_equipment";
 import { versionApi } from "@/lib/api/version";
 import { workerApi } from "@/lib/api/worker";
 
-
+import AdminReport from "@/components/admin/AdminReport";
 import AddModal from "@/components/modals/AddModal";
 import EditModal from "@/components/modals/EditModal";
 import DeleteModal from "@/components/modals/DeleteModal";
@@ -22,13 +22,18 @@ import AddEquipmentToSetModal from "@/components/modals/AddEquipmentToSetModal";
 import RemoveEquipmentFromSetModal from "@/components/modals/RemoveEquipmentFromSetModal";
 import DataTable from "@/components/DataTable";
 import { isPerformedApi } from "@/lib/api/is_performed";
+import type { ActionPublic } from "@/types/action_types";
+import type { IsPerformedPublic } from "@/types/is_performed_types";
+import type { ReservationPublic } from "@/types/reservation_types";
+import type { VehiclePublic } from "@/types/vehicle_types";
+import type { VehModelPublic } from "@/types/vehmodel_types";
 
-type EntityType = "Makes" | "Models" | "Equipment" | "Set_Of_Equipment" | "Versions" | "Vehicles" | "Workers" | "Caretakers" | "Reservations" | "Actions" | "IsPerformed";
+type EntityType = "Makes" | "Models" | "Equipment" | "Set_Of_Equipment" | "Versions" | "Vehicles" | "Workers" | "Caretakers" | "Reservations" | "Actions" | "IsPerformed" | "Raport";
 
-function extractItems(data: unknown): Record<string, unknown>[] {
-    if (Array.isArray(data)) return data as Record<string, unknown>[];
-    if (data && typeof data === "object" && "items" in data) return (data as Record<string, unknown>).items as Record<string, unknown>[];
-    if (data && typeof data === "object" && "data" in data) return (data as Record<string, unknown>).data as Record<string, unknown>[];
+function extractItems<T = Record<string, unknown>>(data: unknown): T[] {
+    if (Array.isArray(data)) return data as T[];
+    if (data && typeof data === "object" && "items" in data) return (data as any).items as T[];
+    if (data && typeof data === "object" && "data" in data) return (data as any).data as T[];
     return [];
 }
 
@@ -51,6 +56,11 @@ export default function Dashboard() {
     const [error, setError] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [vehicles, setVehicles] = useState<VehiclePublic[]>([]);
+    const [models, setModels] = useState<VehModelPublic[]>([]);
+    const [reservations, setReservations] = useState<ReservationPublic[]>([]);
+    const [actions, setActions] = useState<ActionPublic[]>([]);
+    const [isPerformeds, setIsPerformeds] = useState<IsPerformedPublic[]>([]);
     const [itemToEdit, setItemToEdit] = useState<Record<string, unknown> | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -60,6 +70,31 @@ export default function Dashboard() {
     const [isRemoveEquipmentModalOpen, setIsRemoveEquipmentModalOpen] = useState(false);
     const [equipmentInSelectedSet, setEquipmentInSelectedSet] = useState<Record<string, unknown>[]>([]);
 
+    const loadReportData = async () => {
+        setLoading(true);
+        setData(null);
+
+        try {
+            const [vehicleResult, modelResult, reservationResult, actionResult, isPerformedResult] = await Promise.all([
+                vehicleApi.getAll(),
+                vehmodelApi.getAll(),
+                reservationApi.getAll(),
+                actionApi.getAll(),
+                isPerformedApi.getAll(),
+            ]);
+
+            setVehicles(extractItems<VehiclePublic>(vehicleResult));
+            setModels(extractItems<VehModelPublic>(modelResult));
+            setReservations(((reservationResult as any)?.data ?? []) as ReservationPublic[]);
+            setActions(extractItems<ActionPublic>(actionResult));
+            setIsPerformeds(extractItems<IsPerformedPublic>(isPerformedResult));
+        } catch (err: any) {
+            alert(err.message || "There was a problem fetching report data from the server.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const loadData = async (entity: EntityType) => {
         setLoading(true);
         setData(null);
@@ -67,6 +102,9 @@ export default function Dashboard() {
         try {
             let result;
             switch (entity) {
+                case "Raport":
+                    await loadReportData();
+                    return;
                 case "Makes":
                     result = await makeApi.getAll();
                     break;
@@ -101,7 +139,6 @@ export default function Dashboard() {
                 case "IsPerformed":
                     result = await isPerformedApi.getAll();
                     break;
-
             }
             setData(result);
         } catch (err: any) {
@@ -190,7 +227,7 @@ export default function Dashboard() {
     };
 
 
-    const tabs: EntityType[] = ["Makes", "Models", "Equipment", "Set_Of_Equipment", "Versions", "Vehicles", "Workers", "Caretakers", "Reservations", "Actions", "IsPerformed"];
+    const tabs: EntityType[] = ["Makes", "Models", "Equipment", "Set_Of_Equipment", "Versions", "Vehicles", "Workers", "Caretakers", "Reservations", "Actions", "IsPerformed", "Raport"];
 
 
     const getSingularLabel = (entity: EntityType) => {
@@ -422,15 +459,17 @@ const handleEditSubmit = async (updatedData: Record<string, unknown>) => {
                         Przeglądasz: <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">{activeTab}</span>
                     </h3>
 
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 shadow-[0_4px_15px_rgba(139,92,246,0.2)] transition-all duration-300 hover:-translate-y-0.5"
-                    >
+                    {activeTab !== "Raport" && (
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 shadow-[0_4px_15px_rgba(139,92,246,0.2)] transition-all duration-300 hover:-translate-y-0.5"
+                        >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
                         Dodaj {getSingularLabel(activeTab)}
-                    </button>
+                        </button>
+                    )}
                 </div>
 
                 {/* Stan Ładowania */}
@@ -451,7 +490,17 @@ const handleEditSubmit = async (updatedData: Record<string, unknown>) => {
                     </div>
                 )}
 
-                {!loading && !error && extractItems(data).length > 0 && (
+                {activeTab === "Raport" && !loading && !error && (
+                    <AdminReport
+                        vehicles={vehicles}
+                        models={models}
+                        reservations={reservations}
+                        actions={actions}
+                        isPerformeds={isPerformeds}
+                    />
+                )}
+
+                {activeTab !== "Raport" && !loading && !error && extractItems(data).length > 0 && (
                     <DataTable
                         items={extractItems(data)}
                         onEdit={handleEditClick}
@@ -473,7 +522,7 @@ const handleEditSubmit = async (updatedData: Record<string, unknown>) => {
                 )}
 
                 {/* Brak danych */}
-                {!loading && !error && extractItems(data).length === 0 && (
+                {activeTab !== "Raport" && !loading && !error && extractItems(data).length === 0 && (
                     <div className="text-center py-12">
                         <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
                             Brak rekordów do wyświetlenia
