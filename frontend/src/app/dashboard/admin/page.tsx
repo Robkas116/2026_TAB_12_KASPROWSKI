@@ -41,7 +41,6 @@ export default function Dashboard() {
     const user = useUser();
     const router = useRouter();
 
-    // Block non-superusers
     useEffect(() => {
         if (user && !user.is_superuser) {
             router.replace("/dashboard");
@@ -69,18 +68,20 @@ export default function Dashboard() {
     const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
     const [isRemoveEquipmentModalOpen, setIsRemoveEquipmentModalOpen] = useState(false);
     const [equipmentInSelectedSet, setEquipmentInSelectedSet] = useState<Record<string, unknown>[]>([]);
+    const [makes, setMakes] = useState<any[]>([]);
 
     const loadReportData = async () => {
         setLoading(true);
         setData(null);
 
         try {
-            const [vehicleResult, modelResult, reservationResult, actionResult, isPerformedResult] = await Promise.all([
+            const [vehicleResult, modelResult, reservationResult, actionResult, isPerformedResult, makeResult] = await Promise.all([
                 vehicleApi.getAll(),
                 vehmodelApi.getAll(),
                 reservationApi.getAll(),
                 actionApi.getAll(),
                 isPerformedApi.getAll(),
+                makeApi.getAll(),
             ]);
 
             setVehicles(extractItems<VehiclePublic>(vehicleResult));
@@ -88,6 +89,7 @@ export default function Dashboard() {
             setReservations(((reservationResult as any)?.data ?? []) as ReservationPublic[]);
             setActions(extractItems<ActionPublic>(actionResult));
             setIsPerformeds(extractItems<IsPerformedPublic>(isPerformedResult));
+            setMakes(extractItems<any>(makeResult));
         } catch (err: any) {
             alert(err.message || "There was a problem fetching report data from the server.");
         } finally {
@@ -433,7 +435,6 @@ const handleEditSubmit = async (updatedData: Record<string, unknown>) => {
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            // DODANE: cursor-pointer na samym początku klas (kolejność nie ma znaczenia, ale ułatwia czytanie)
                             className={`cursor-pointer px-5 py-2.5 rounded-xl text-sm font-bold tracking-tight transition-all duration-300 hover:-translate-y-px ${isActive
                                     ? "text-white shadow-lg"
                                     : "hover:text-white hover:bg-white/10"
@@ -497,6 +498,7 @@ const handleEditSubmit = async (updatedData: Record<string, unknown>) => {
                         reservations={reservations}
                         actions={actions}
                         isPerformeds={isPerformeds}
+                        makes={makes}
                     />
                 )}
 
@@ -611,3 +613,4 @@ const handleEditSubmit = async (updatedData: Record<string, unknown>) => {
         </div>
     );
 }
+

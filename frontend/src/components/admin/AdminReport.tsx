@@ -17,6 +17,7 @@ interface AdminReportProps {
   reservations: ReservationPublic[];
   actions: ActionPublic[];
   isPerformeds: IsPerformedPublic[];
+  makes: any[];
 }
 
 const parseDate = (value: string | null | undefined) => {
@@ -48,57 +49,59 @@ const getOverlapDays = (from: Date, to: Date, rangeStart: Date, rangeEnd: Date) 
 
 const clampValue = (value: number) => Math.max(0, Math.min(value, 100));
 
-const renderProgressBar = (value: number, maxValue: number) => {
-  const width = maxValue > 0 ? clampValue((value / maxValue) * 100) : 0;
-  return (
-    <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-      <div
-        className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500"
-        style={{ width: `${width}%` }}
-      />
-    </div>
-  );
-};
-
-export default function AdminReport({ vehicles, models, reservations, actions, isPerformeds }: AdminReportProps) {
+export default function AdminReport({ vehicles, models, reservations, actions, isPerformeds, makes }: AdminReportProps) {
   const vehicleMap = new Map(vehicles.map((v) => [v.id, v]));
   const modelMap = new Map(models.map((m) => [m.id, m]));
   const actionMap = new Map(actions.map((a) => [a.id, a.type]));
   const reservationMap = new Map(reservations.map((r) => [r.id, r]));
+  const makeMap = new Map(makes.map((m) => [m.id, m]));
 
-  const serviceCosts = new Map<string, number>();
-  const exploitationCosts = new Map<string, number>();
+  const vehicleCostsMap = new Map<number, { label: string; service: number; exploitation: number }>();
 
   isPerformeds.forEach((performed) => {
     const actionType = actionMap.get(performed.action_id);
     if (!actionType) return;
+    
     const reservation = reservationMap.get(performed.reservation_id);
     if (!reservation) return;
+    
     const vehicle = typeof reservation.vehicle_id === "number" ? vehicleMap.get(reservation.vehicle_id) : undefined;
     if (!vehicle) return;
+    
     const model = modelMap.get(vehicle.veh_model_id);
     if (!model) return;
-    const modelName = `${model.make_name} ${model.name}`;
-    const targetMap = actionType === ActionType.SERVICE ? serviceCosts : actionType === ActionType.EXPLOITATION ? exploitationCosts : null;
-    if (!targetMap) return;
-    targetMap.set(modelName, (targetMap.get(modelName) ?? 0) + performed.price);
+
+    const make = makeMap.get((model as any).make_id);
+    const makeName = make && make.name ? `${make.name} ` : "";
+
+    if (!vehicleCostsMap.has(vehicle.id)) {
+      vehicleCostsMap.set(vehicle.id, {
+        label: `${makeName}${model.name} (ID:${vehicle.id})`,
+        service: 0,
+        exploitation: 0,
+      });
+    }
+
+    const vCost = vehicleCostsMap.get(vehicle.id)!;
+    if (actionType === ActionType.SERVICE) vCost.service += performed.price;
+    if (actionType === ActionType.EXPLOITATION) vCost.exploitation += performed.price;
   });
 
-  const costChartData = (source: Map<string, number>) =>
-    [...source.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([label, value]) => ({ label, value }));
+  const vehicleCostsData = [...vehicleCostsMap.values()]
+    .sort((a, b) => (b.service + b.exploitation) - (a.service + a.exploitation))
+    .slice(0, 8);
 
-  const serviceChart = costChartData(serviceCosts);
-  const exploitationChart = costChartData(exploitationCosts);
-  const maxCost = Math.max(
-    ...serviceChart.map((item) => item.value),
-    ...exploitationChart.map((item) => item.value),
-    1,
+  const maxSingleCost = Math.max(
+    ...vehicleCostsData.map((v) => Math.max(v.service, v.exploitation)),
+    1
   );
 
-  const months = getLastMonths(6);
+  const totalServiceCost = [...vehicleCostsMap.values()].reduce((sum, v) => sum + v.service, 0);
+  const totalExploitationCost = [...vehicleCostsMap.values()].reduce((sum, v) => sum + v.exploitation, 0);
+  const totalOverallCost = totalServiceCost + totalExploitationCost;
+
+ 
+  const months = getLastMonths(12);
   const totalVehicles = Math.max(vehicles.length, 1);
 
   const occupancy = months.map((month) => {
@@ -115,162 +118,253 @@ export default function AdminReport({ vehicles, models, reservations, actions, i
     return {
       label: month.label,
       percent: totalPossibleDays ? Math.round((reservedDays / totalPossibleDays) * 100) : 0,
-      raw: reservedDays,
     };
   });
 
-  const modelReservationCounts = new Map<string, number>();
-  reservations.forEach((reservation) => {
-    if (reservation.state === "canceled") return;
-    const vehicle = typeof reservation.vehicle_id === "number" ? vehicleMap.get(reservation.vehicle_id) : undefined;
-    if (!vehicle) return;
-    const model = modelMap.get(vehicle.veh_model_id);
-    if (!model) return;
-    const key = `${model.make_name} ${model.name}`;
-    modelReservationCounts.set(key, (modelReservationCounts.get(key) ?? 0) + 1);
+  
+  const svgPoints = occupancy.map((item, index) => {
+    const x = 30 + index * 76;
+    const y = 140 - clampValue(item.percent) * 1.2;
+    return { x, y, percent: item.percent, label: item.label };
   });
 
-  const selectedModels = [...modelReservationCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([label, count]) => ({ label, count }));
+ 
+  let smoothLinePath = "";
+  if (svgPoints.length > 0) {
+    smoothLinePath = `M ${svgPoints[0].x} ${svgPoints[0].y}`;
+    for (let i = 1; i < svgPoints.length; i++) {
+      const prev = svgPoints[i - 1];
+      const curr = svgPoints[i];
+      const midX = (prev.x + curr.x) / 2;
+      smoothLinePath += ` C ${midX} ${prev.y}, ${midX} ${curr.y}, ${curr.x} ${curr.y}`;
+    }
+  }
 
-  const maxModelCount = Math.max(...selectedModels.map((item) => item.count), 1);
 
-  const linePoints = occupancy
-    .map((item, index) => {
-      const x = 20 + index * 140;
-      const y = 140 - clampValue(item.percent) * 1.2;
-      return `${x},${y}`;
-    })
-    .join(" ");
+  const modelStatsMap = new Map<string, { label: string; count: number; days: number }>();
+
+  reservations.forEach((reservation) => {
+    if (reservation.state === "canceled") return;
+    
+    const vehicle = typeof reservation.vehicle_id === "number" ? vehicleMap.get(reservation.vehicle_id) : undefined;
+    if (!vehicle) return;
+    
+    const model = modelMap.get(vehicle.veh_model_id);
+    if (!model) return;
+    
+    const make = makeMap.get((model as any).make_id);
+    const makeName = make && make.name ? `${make.name} ` : "";
+    const key = `${makeName}${model.name}`;
+
+    const start = parseDate(reservation.date_start_planned);
+    const end = parseDate(reservation.date_end_planned);
+    
+    let days = 0;
+    if (start && end) {
+      days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    if (!modelStatsMap.has(key)) {
+      modelStatsMap.set(key, { label: key, count: 0, days: 0 });
+    }
+    
+    const stats = modelStatsMap.get(key)!;
+    stats.count += 1;
+    stats.days += days;
+  });
+
+  const selectedModels = [...modelStatsMap.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 4);
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <section className="glass-elevated rounded-[2rem] border border-white/5 p-6">
-          <div className="flex items-center justify-between gap-4 mb-5">
+      
+      {/* --- GÓRNY RZĄD: KOSZTY + MODELE --- */}
+      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+        
+        {/* LEWA KOLUMNA: KOSZTY (SŁUPKOWY) */}
+        <section className="glass-elevated rounded-[2rem] border border-white/5 p-6 flex flex-col min-h-[400px]">
+          <div className="flex items-center justify-between gap-4 mb-8">
             <div>
-              <h3 className="text-xl font-bold text-white">Koszty serwisowe i eksploatacyjne</h3>
-              <p className="text-sm text-white/60">Podsumowanie kosztów według modelu pojazdu.</p>
+              <h3 className="text-xl font-bold text-white">Koszty per Pojazd</h3>
+              <p className="text-sm text-white/60">Zestawienie kosztów serwisowych i eksploatacyjnych (Top 8).</p>
+            </div>
+            <div className="flex flex-col gap-2 text-xs font-medium text-white/70 bg-black/20 p-3 rounded-xl border border-white/5">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-cyan-400"></span> Serwis
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-purple-500"></span> Eksploatacja
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-white">Serwisowe</span>
-                <span className="text-sm text-white/60">Top modele</span>
-              </div>
-              {serviceChart.length > 0 ? (
-                serviceChart.map((item) => (
-                  <div key={item.label} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm text-white/70">
-                      <span>{item.label}</span>
-                      <span>{currencyFormatter.format(item.value)}</span>
+          {/* Wykres */}
+          <div className="flex-1 flex items-stretch gap-2 sm:gap-6 mt-auto overflow-x-auto pb-2 px-2 custom-scrollbar pt-4">
+            {vehicleCostsData.length > 0 ? (
+              vehicleCostsData.map((v) => (
+                <div key={v.label} className="flex flex-col items-center justify-end flex-shrink-0 w-20 sm:w-24 group cursor-pointer">
+                  <div className="flex items-end gap-1 h-44 w-full justify-center relative bg-white/[0.02] rounded-t-xl border-b border-white/10">
+                    
+                    {/* W słupkach max 80% zamiast 100%, aby na górze zostało miejsce na tekst dla najwyższego słupka */}
+                    <div 
+                      className="w-full max-w-[1.5rem] bg-gradient-to-t from-cyan-600 to-cyan-400 rounded-t-md relative transition-all duration-300 group-hover:brightness-125"
+                      style={{ height: `${(v.service / maxSingleCost) * 80}%`, minHeight: v.service > 0 ? '4px' : '0' }}
+                    >
+                      <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-cyan-200 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-1.5 py-0.5 rounded z-10">
+                        {v.service > 0 ? currencyFormatter.format(v.service) : ''}
+                      </span>
                     </div>
-                    {renderProgressBar(item.value, maxCost)}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-white/50">Brak danych o kosztach serwisowych.</p>
-              )}
-            </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-white">Eksploatacyjne</span>
-                <span className="text-sm text-white/60">Top modele</span>
-              </div>
-              {exploitationChart.length > 0 ? (
-                exploitationChart.map((item) => (
-                  <div key={item.label} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm text-white/70">
-                      <span>{item.label}</span>
-                      <span>{currencyFormatter.format(item.value)}</span>
+                    <div 
+                      className="w-full max-w-[1.5rem] bg-gradient-to-t from-purple-600 to-purple-500 rounded-t-md relative transition-all duration-300 group-hover:brightness-125"
+                      style={{ height: `${(v.exploitation / maxSingleCost) * 80}%`, minHeight: v.exploitation > 0 ? '4px' : '0' }}
+                    >
+                      <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-purple-200 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-1.5 py-0.5 rounded z-10">
+                        {v.exploitation > 0 ? currencyFormatter.format(v.exploitation) : ''}
+                      </span>
                     </div>
-                    {renderProgressBar(item.value, maxCost)}
+
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-white/50">Brak danych o kosztach eksploatacyjnych.</p>
-              )}
+                  <div className="text-[10px] font-medium text-center text-white/50 leading-tight w-full break-words mt-3 h-8">
+                    {v.label}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white/40 text-sm">
+                Brak danych o kosztach dla pojazdów.
+              </div>
+            )}
+          </div>
+
+          {/* PODSUMOWANIE KOSZTÓW */}
+          <div className="mt-6 pt-5 border-t border-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="text-[10px] font-bold text-white/50 uppercase tracking-[0.15em] mb-1">
+                Łączne koszty floty
+              </div>
+              <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70">
+                {currencyFormatter.format(totalOverallCost)}
+              </div>
+            </div>
+            
+            <div className="flex gap-6 bg-black/20 px-4 py-3 rounded-2xl border border-white/5">
+              <div>
+                <div className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-0.5">Całkowity Serwis</div>
+                <div className="text-sm font-bold text-cyan-400">
+                  {currencyFormatter.format(totalServiceCost)}
+                </div>
+              </div>
+              <div className="w-px bg-white/10"></div>
+              <div>
+                <div className="text-[10px] font-semibold text-white/40 uppercase tracking-wider mb-0.5">Całkowita Eksploatacja</div>
+                <div className="text-sm font-bold text-purple-400">
+                  {currencyFormatter.format(totalExploitationCost)}
+                </div>
+              </div>
             </div>
           </div>
+
         </section>
 
-        <section className="glass-elevated rounded-[2rem] border border-white/5 p-6">
-          <div className="mb-5">
-            <h3 className="text-xl font-bold text-white">Obłożenie floty</h3>
-            <p className="text-sm text-white/60">Ile procent dni w miesiącu było zajętych dla całej floty.</p>
+        {/* PRAWA KOLUMNA: NAJCZĘŚCIEJ WYBIERANE MODELE */}
+        <section className="glass-elevated rounded-[2rem] border border-white/5 p-6 flex flex-col min-h-[400px]">
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-white">Top Modele</h3>
+            <p className="text-sm text-white/60">Zestawienie liczby rezerwacji i dni.</p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-            <svg viewBox="0 0 900 160" className="w-full h-[160px] overflow-visible">
-              <defs>
-                <linearGradient id="lineGradient" x1="0" x2="1" y1="0" y2="0">
-                  <stop offset="0%" stopColor="#38bdf8" />
-                  <stop offset="100%" stopColor="#818cf8" />
-                </linearGradient>
-              </defs>
-              <polyline
-                fill="none"
-                stroke="url(#lineGradient)"
-                strokeWidth="4"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                points={linePoints}
-              />
-              {occupancy.map((item, index) => {
-                const x = 20 + index * 140;
-                const y = 140 - clampValue(item.percent) * 1.2;
-                return (
-                  <g key={item.label}>
-                    <circle cx={x} cy={y} r="6" fill="#38bdf8" />
-                    <text x={x} y={y - 14} textAnchor="middle" className="text-xs fill-white">
-                      {item.percent}%
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-
-            <div className="grid grid-cols-3 gap-4 mt-4 text-sm text-white/70">
-              {occupancy.map((item) => (
-                <div key={item.label} className="space-y-1">
-                  <div className="font-semibold text-white">{item.label}</div>
-                  <div>{item.percent}%</div>
+          {selectedModels.length > 0 ? (
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 overflow-y-auto custom-scrollbar pr-1">
+              {selectedModels.map((item, index) => (
+                <div 
+                  key={item.label} 
+                  className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-2xl p-4 transition-all duration-300 relative overflow-hidden group flex flex-col justify-center"
+                >
+                  <div className="absolute -right-2 -bottom-4 text-7xl font-black text-white/[0.03] pointer-events-none group-hover:scale-110 transition-transform">
+                    {index + 1}
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <h4 className="text-base font-bold text-white mb-2 truncate pr-6" title={item.label}>
+                      {item.label}
+                    </h4>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Rezerwacje</span>
+                        <div className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                          {item.count}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Dni wynajmu</span>
+                        <div className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+                          {item.days}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-center">
+              <p className="text-sm text-white/50">Brak wystarczających danych.</p>
+            </div>
+          )}
         </section>
       </div>
 
-      <section className="glass-elevated rounded-[2rem] border border-white/5 p-6">
-        <div className="flex items-center justify-between gap-4 mb-5">
-          <div>
-            <h3 className="text-xl font-bold text-white">Najczęściej wybierane modele</h3>
-            <p className="text-sm text-white/60">Modele z największą liczbą rezerwacji.</p>
-          </div>
+      {/* --- DOLNY RZĄD: OBŁOŻENIE FLOTY (PEŁNA SZEROKOŚĆ) --- */}
+      <section className="glass-elevated rounded-[2rem] border border-white/5 p-6 flex flex-col">
+        <div className="mb-5">
+          <h3 className="text-xl font-bold text-white">Obłożenie floty</h3>
+          <p className="text-sm text-white/60">Ile procent dni w miesiącu było zajętych dla całej floty (Ostatnie 12 miesięcy).</p>
         </div>
 
-        {selectedModels.length > 0 ? (
-          <div className="space-y-4">
-            {selectedModels.map((item) => (
-              <div key={item.label} className="space-y-2">
-                <div className="flex items-center justify-between text-sm text-white/70">
-                  <span>{item.label}</span>
-                  <span>Ilość rezerwacji:{item.count}</span>
-                </div>
-                {renderProgressBar(item.count, maxModelCount)}
+        <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
+          <svg viewBox="0 0 900 140" className="w-full h-full min-h-[140px] overflow-visible">
+            <defs>
+              <linearGradient id="lineGradient" x1="0" x2="1" y1="0" y2="0">
+                <stop offset="0%" stopColor="#38bdf8" />
+                <stop offset="100%" stopColor="#818cf8" />
+              </linearGradient>
+            </defs>
+            
+            <path
+              d={smoothLinePath}
+              fill="none"
+              stroke="url(#lineGradient)"
+              strokeWidth="4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+            
+            {svgPoints.map((item) => (
+              <g key={item.label}>
+                <circle cx={item.x} cy={item.y} r="5" fill="#38bdf8" />
+                <text x={item.x} y={item.y - 12} textAnchor="middle" className="text-[11px] font-bold fill-white">
+                  {item.percent}%
+                </text>
+              </g>
+            ))}
+          </svg>
+
+          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 mt-6 text-xs text-white/70 text-center">
+            {svgPoints.map((item) => (
+              <div key={item.label} className="space-y-1">
+                <div className="font-semibold text-white truncate" title={item.label}>{item.label}</div>
+                <div>{item.percent}%</div>
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-sm text-white/50">Brak wystarczających danych, aby obliczyć najczęściej wybierane modele.</p>
-        )}
+        </div>
       </section>
+
     </div>
   );
 }
+
