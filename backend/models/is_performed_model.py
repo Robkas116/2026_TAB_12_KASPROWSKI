@@ -28,7 +28,7 @@ class IsPerformed(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
     date: Mapped[dt_date] = mapped_column(Date, nullable=False)
-    state: Mapped[State] = mapped_column(Enum(State), nullable=False)
+    state: Mapped[State] = mapped_column(Enum(State, native_enum=False), nullable=False)
     action_id: Mapped[int] = mapped_column(Integer, ForeignKey("action.id", ondelete="RESTRICT"), nullable=False)
     reservation_id: Mapped[int] = mapped_column(Integer, ForeignKey("reservation.id", ondelete="RESTRICT"), nullable=False)
 

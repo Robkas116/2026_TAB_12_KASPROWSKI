@@ -1,4 +1,19 @@
 services:
+  db: # <-- NOWY SERWIS
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=tab_user
+      - POSTGRES_PASSWORD=tab_password
+      - POSTGRES_DB=tab_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tab_user -d tab_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   backend:
     build:
       context: ./backend
@@ -10,6 +25,10 @@ services:
       - DEFAULT_ADMIN_EMAIL=admin@fleet.pl
       - DEFAULT_ADMIN_PASSWORD=admin123
       - DEFAULT_ADMIN_NAME=Administrator
+      - DATABASE_URL=postgresql+psycopg://tab_user:tab_password@db:5432/tab_database
+    depends_on:
+      db:
+        condition: service_healthy
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
@@ -28,3 +47,6 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+volumes:
+  postgres_data:
+  

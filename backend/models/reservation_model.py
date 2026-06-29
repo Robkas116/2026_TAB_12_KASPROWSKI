@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Optional
 from datetime import datetime
-from sqlalchemy import Integer, Float, DateTime, String, ForeignKey
+from sqlalchemy import Integer, Float, DateTime, String, ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from pydantic import BaseModel, ConfigDict, field_validator
 from database.database import Base
@@ -43,11 +43,16 @@ class Reservation(Base):
     date_end_planned: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     price: Mapped[float] = mapped_column(Float, nullable=False)
     distance: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    purpose: Mapped[Purpose_enum] = mapped_column(nullable=False)
+    purpose: Mapped[Purpose_enum] = mapped_column(
+        Enum(Purpose_enum, native_enum=False), 
+        nullable=False
+    )
     date_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     date_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     state: Mapped[Reservation_state_enum] = mapped_column(
-        default=Reservation_state_enum.CREATED, nullable=False
+        Enum(Reservation_state_enum, native_enum=False),
+        default=Reservation_state_enum.CREATED, 
+        nullable=False
     )
 
     state_start: Mapped[Optional[str]] = mapped_column(String(350), nullable=True)

@@ -14,7 +14,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
     "sqlalchemy-orm>=1.2.10" \
     "python-jose[cryptography]>=3.3.0" \
     "passlib[bcrypt]>=1.7.4" \
-    "python-multipart>=0.0.9"
+    "python-multipart>=0.0.9" \
+    "psycopg[binary]>=3.1.0"
 
 COPY . .
 

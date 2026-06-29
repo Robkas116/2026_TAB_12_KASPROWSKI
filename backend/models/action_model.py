@@ -22,7 +22,7 @@ class Action(Base):
     __tablename__ = "action"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
-    type: Mapped[ActionType] = mapped_column(Enum(ActionType), nullable=False)
+    type: Mapped[ActionType] = mapped_column(Enum(ActionType, native_enum=False), nullable=False)
     
     # Relationship to IsPerformed
     is_performeds: Mapped[list["IsPerformed"]] = relationship("IsPerformed", back_populates="action")
