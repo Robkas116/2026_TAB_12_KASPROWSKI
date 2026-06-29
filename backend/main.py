@@ -11,21 +11,6 @@ from api.router import api_router
 
 Base.metadata.create_all(bind=engine)
 
-# Run migrations for new columns (SQLite ALTER TABLE)
-import sqlite3
-try:
-    db_path = engine.url.database
-    if db_path:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.execute("PRAGMA table_info(reservation)")
-        columns = [row[1] for row in cursor.fetchall()]
-        if "service_name" not in columns:
-            conn.execute("ALTER TABLE reservation ADD COLUMN service_name VARCHAR(200)")
-            conn.commit()
-        conn.close()
-except Exception:
-    pass  # Silently skip if migration fails (e.g., table doesn't exist yet)
-
 # Seed default data
 def _seed_defaults():
     from models.worker_model import Worker
