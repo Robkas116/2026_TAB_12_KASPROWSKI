@@ -27,6 +27,7 @@ import type { IsPerformedPublic } from "@/types/is_performed_types";
 import type { ReservationPublic } from "@/types/reservation_types";
 import type { VehiclePublic } from "@/types/vehicle_types";
 import type { VehModelPublic } from "@/types/vehmodel_types";
+import { Allerta, Allerta_Stencil } from "next/font/google";
 
 type EntityType = "Makes" | "Models" | "Equipment" | "Set_Of_Equipment" | "Versions" | "Vehicles" | "Workers" | "Caretakers" | "Reservations" | "Actions" | "IsPerformed" | "Raport";
 
@@ -222,7 +223,7 @@ export default function Dashboard() {
             setIsAddModalOpen(false); 
             await loadData(activeTab); 
         } catch (err: any) {
-            setError(err.message || "Wystąpił błąd podczas dodawania rekordu.");
+            alert(err.message || "Wystąpił błąd podczas dodawania rekordu.");
         } finally {
             setSaving(false);
         }
@@ -407,7 +408,7 @@ const handleEditSubmit = async (updatedData: Record<string, unknown>) => {
             setItemToEdit(null);
             await loadData(activeTab);
         } catch (err: any) {
-            setError(err.message || "Nie udało się zaktualizować rekordu.");
+            alert(err.message || "Nie udało się zaktualizować rekordu.");
         } finally {
             setSaving(false);
         }
